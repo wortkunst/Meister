@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "Game": {
+      "title": "Game",
+      "description": "Represents the state of a Yes, Mylord game",
+      "type": "object",
+      "properties": {
+        "version": { "type": "string" },
+        "players": { 
+          "type": "array",
+          "items": { "$ref": "#/entities/Player" }
+        },
+        "currentPlayerIndex": { "type": "number" },
+        "deck": { "type": "array", "items": { "$ref": "#/entities/Card" } },
+        "discardPile": { "type": "array", "items": { "$ref": "#/entities/Card" } },
+        "phase": { "type": "string" },
+        "round": { "type": "number" },
+        "pendingCards": { "type": "array", "items": { "$ref": "#/entities/Card" } },
+        "pendingActionCard": { "$ref": "#/entities/Card" },
+        "eventLog": { "type": "array" }
+      }
+    },
+    "Player": {
+      "title": "Player",
+      "description": "A player in the game",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "name": { "type": "string" },
+        "userId": { "type": "string", "description": "The UID of the user controlling this player. Null if bot/unassigned." },
+        "score": { "type": "number" },
+        "roundScore": { "type": "number" },
+        "display": { "type": "array" },
+        "status": { "type": "string" }
+      }
+    },
+    "Card": {
+      "title": "Card",
+      "description": "A card in the game",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "value": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/games/{gameId}": {
+      "schema": { "$ref": "#/entities/Game" },
+      "description": "The current state of games"
+    }
+  }
+}

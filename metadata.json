@@ -1,0 +1,5 @@
+{
+  "name": "Yes, Mylord - Card Game Prototype",
+  "description": "Ein lokales Hotseat-Kartenspiel, bei dem Spieler durch böse und gute Taten den Zielwert des Meisters treffen müssen.",
+  "requestFramePermissions": []
+}
