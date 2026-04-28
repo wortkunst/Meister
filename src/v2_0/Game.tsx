@@ -30,6 +30,19 @@ const typeColors: Record<string, { bg: string, text: string, border: string }> =
   'Dynamit': { bg: 'bg-[#5e1919]', text: 'text-red-100', border: 'border-red-600' },
 };
 
+const imageMap: Record<string, string> = {
+  'Geheimfach': '/images/geheimfach-ohne-wert.png',
+  'Glitzerklunker': '/images/glitzerklunker-ohne-wert.png',
+  'Hinterhalt!': '/images/hinterhalt-ohne-wert.png',
+  'Lugloch': '/images/lugloch-ohne-wert.png',
+  'Schrottrüstung': '/images/ruestung-ohne-wert.png',
+  'Von hinten geschubst': '/images/schubs-ohne-wert.png',
+  'Des Meisters Fluch': '/images/fluch-ohne-wert.png',
+  'Dynamit': '/images/dynamit-ohne-wert.png',
+  'Auswahlelixir': '/images/auswahlelixir-ohne-wert.png',
+  'Käfig': '/images/kaefig-ohne-wert.png'
+};
+
 const CardView = ({ card, isSecret, onClick, selectable }: { card: Card, isSecret?: boolean, onClick?: () => void, selectable?: boolean }) => {
   const formatCardType = (type: string) => {
     if (type === 'Hinterhalt!') return 'Hinter-\nhalt!';
@@ -71,19 +84,6 @@ const CardView = ({ card, isSecret, onClick, selectable }: { card: Card, isSecre
   const colorScheme = typeColors[card.type] || { bg: 'bg-slate-800', text: 'text-slate-300', border: 'border-slate-600' };
   const borderColor = selectable ? 'border-[3px] border-yellow-400 cursor-pointer shadow-[0_0_15px_rgba(250,204,21,0.6)] animate-pulse' : colorScheme.border;
   const imageBorderClass = selectable ? 'border-[3px] border-yellow-400 cursor-pointer shadow-[0_0_15px_rgba(250,204,21,0.6)] animate-pulse' : 'border-transparent';
-
-  const imageMap: Record<string, string> = {
-    'Geheimfach': '/images/geheimfach-ohne-wert.png',
-    'Glitzerklunker': '/images/glitzerklunker-ohne-wert.png',
-    'Hinterhalt!': '/images/hinterhalt-kein-wert.png',
-    'Lugloch': '/images/lugloch-kein-wert.png',
-    'Schrottrüstung': '/images/ruestung-kein-wert.png',
-    'Von hinten geschubst': '/images/schubs-ohne-wert.png',
-    'Des Meisters Fluch': '/images/fluch-ohne-wert.png',
-    'Dynamit': '/images/dynamit-ohne-wert.png',
-    'Auswahlelixir': '/images/auswahlelixir-ohne-wert.png',
-    'Käfig': '/images/kaefig-ohne-wert.png'
-  };
 
   if (imageMap[card.type]) {
     const imgSrc = imageMap[card.type];
@@ -254,9 +254,9 @@ export default function Game({
     const imagesToPreload = [
       '/images/geheimfach-ohne-wert.png',
       '/images/glitzerklunker-ohne-wert.png',
-      '/images/hinterhalt-kein-wert.png',
-      '/images/lugloch-kein-wert.png',
-      '/images/ruestung-kein-wert.png',
+      '/images/hinterhalt-ohne-wert.png',
+      '/images/lugloch-ohne-wert.png',
+      '/images/ruestung-ohne-wert.png',
       '/images/schubs-ohne-wert.png',
       '/images/fluch-ohne-wert.png',
       '/images/dynamit-ohne-wert.png',
