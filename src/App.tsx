@@ -14,7 +14,7 @@ export default function App() {
   const [localVersion, setLocalVersion] = useState('v3_0');
   
   // Local state
-  const [localPlayers, setLocalPlayers] = useState(['Spieler 1', 'Spieler 2', '', '']);
+  const [localPlayers, setLocalPlayers] = useState(['Gribbel', 'Bork', '', '']);
   
   // Multiplayer state
   const [myUserId] = useState(() => {
