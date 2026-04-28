@@ -240,8 +240,8 @@ export function playCard(state: GameState, card: Card): GameState {
 
     if (card.type === 'Langfinger') {
         let s2 = addToDisplay(s, card);
-        const opponentsHaveCards = s2.players.some(pl => pl.id !== p.id && pl.status === 'PLAYING' && pl.display.some(item => !item.cagedBy));
-        if (opponentsHaveCards) {
+        const opponentsHaveVisibleCards = s2.players.some(pl => pl.id !== p.id && pl.status === 'PLAYING' && pl.display.some(item => !item.cagedBy && !item.isSecret));
+        if (opponentsHaveVisibleCards) {
             return { ...s2, phase: 'langfinger_decision', pendingActionCard: card };
         }
         return advanceTurn(s2);

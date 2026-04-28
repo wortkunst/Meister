@@ -18,16 +18,16 @@ const typeIcons: Record<string, React.ReactNode> = {
 };
 
 const typeColors: Record<string, { bg: string, text: string, border: string }> = {
-  'Käfig': { bg: 'bg-[#2d2a26]', text: 'text-stone-300', border: 'border-stone-600' },
-  'Hinterhalt!': { bg: 'bg-[#4a2e15]', text: 'text-orange-200', border: 'border-orange-700' },
-  'Schrottrüstung': { bg: 'bg-[#2b3544]', text: 'text-slate-300', border: 'border-slate-500' },
-  'Glitzerklunker': { bg: 'bg-[#4a3f15]', text: 'text-yellow-200', border: 'border-yellow-600' },
-  'Von hinten geschubst': { bg: 'bg-[#4a1532]', text: 'text-pink-200', border: 'border-pink-700' },
-  'Lugloch': { bg: 'bg-[#2d154a]', text: 'text-purple-200', border: 'border-purple-700' },
-  'Geheimfach': { bg: 'bg-[#15204a]', text: 'text-indigo-200', border: 'border-indigo-700' },
+  'Käfig': { bg: 'bg-[#241f1a]', text: 'text-stone-300', border: 'border-[#4e4437]' },
+  'Hinterhalt!': { bg: 'bg-[#5a3216]', text: 'text-amber-200', border: 'border-[#7f4a1f]' },
+  'Schrottrüstung': { bg: 'bg-[#2b2a28]', text: 'text-slate-300', border: 'border-[#4f4b43]' },
+  'Glitzerklunker': { bg: 'bg-[#4b3b12]', text: 'text-amber-200', border: 'border-[#7c5d2e]' },
+  'Von hinten geschubst': { bg: 'bg-[#5d271e]', text: 'text-rose-200', border: 'border-[#7f3f2f]' },
+  'Lugloch': { bg: 'bg-[#2f1f17]', text: 'text-amber-200', border: 'border-[#53382d]' },
+  'Geheimfach': { bg: 'bg-[#2a1f19]', text: 'text-slate-300', border: 'border-[#53463d]' },
   'Des Meisters Fluch': { bg: 'bg-[#3b1212]', text: 'text-red-200', border: 'border-red-700' },
-  'Auswahlelixir': { bg: 'bg-[#123b28]', text: 'text-emerald-200', border: 'border-emerald-700' },
-  'Dynamit': { bg: 'bg-[#5e1919]', text: 'text-red-100', border: 'border-red-600' },
+  'Auswahlelixir': { bg: 'bg-[#3d2614]', text: 'text-amber-200', border: 'border-[#7e5d3d]' },
+  'Dynamit': { bg: 'bg-[#5c1414]', text: 'text-red-100', border: 'border-[#7f1d1d]' },
 };
 
 const imageMap: Record<string, string> = {
@@ -189,6 +189,7 @@ export default function Game({
   const [playerNames, setPlayerNames] = useState(initialPlayers && initialPlayers.length >= 2
     ? [...initialPlayers, ...Array(4 - initialPlayers.length).fill('')].slice(0, 4)
     : ['Gnogin', 'Spipz', 'Borkle', '']);
+  const [showRules, setShowRules] = useState(false);
 
   useEffect(() => {
     if (state.phase === 'fluch_cancel_wait') {
@@ -277,10 +278,10 @@ export default function Game({
 
   if (state.phase === 'setup') {
     return (
-      <div className="min-h-screen bg-slate-950 text-white p-8 flex flex-col items-center justify-center font-sans relative overflow-hidden bg-mesh-gradient">
-        <div className="relative z-10 max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl">
+      <div className="min-h-screen bg-[#130b05] text-white p-8 flex flex-col items-center justify-center font-sans relative overflow-hidden bg-mesh-gradient">
+        <div className="relative z-10 max-w-md w-full bg-[#1f160f] border border-[#3e2d22] p-8 rounded-3xl shadow-2xl">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-bold tracking-tighter bg-gradient-to-br from-emerald-400 to-cyan-500 bg-clip-text text-transparent">Setup</h1>
+            <h1 className="text-4xl font-bold tracking-tighter bg-gradient-to-br from-[#b77c3d] to-[#f0c27a] bg-clip-text text-transparent">Setup</h1>
             <select
               value={currentVersion}
               onChange={(e) => handleStartVersion(e.target.value)}
@@ -305,7 +306,7 @@ export default function Game({
                     newNames[i] = e.target.value;
                     setPlayerNames(newNames);
                   }}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 transition-colors"
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-[#b77c3d] transition-colors"
                   placeholder={`Name eingeben...`}
                 />
               </div>
@@ -315,7 +316,7 @@ export default function Game({
           <button
             onClick={() => handleStartVersion(currentVersion)}
             disabled={playerNames.filter(n => n.trim() !== '').length < 2}
-            className="w-full py-4 bg-gradient-to-b from-emerald-400 to-emerald-600 text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(4,120,87),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-4 bg-gradient-to-b from-[#8d4f26] to-[#d68d4a] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(114,59,17),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
           >
             V2.0 Starten
           </button>
@@ -336,14 +337,15 @@ export default function Game({
 
   return (
     <div
-      className="min-h-screen bg-slate-950 text-white font-sans flex flex-col items-center pt-2 pb-24 relative overflow-hidden bg-mesh-gradient"
+      className="min-h-screen bg-[#130b05] text-white font-sans flex flex-col items-center pt-2 pb-24 relative overflow-hidden bg-mesh-gradient"
     >
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-cyan-400">V3.0 CAPTAIN TIL</h1>
-          <p className="text-sm text-slate-400">Runde {state.round}</p>
+          <h1 className="text-3xl font-black tracking-tight text-amber-300">V3.0 CAPTAIN TIL</h1>
+          <p className="text-sm text-stone-400">Runde {state.round}</p>
         </div>
-        <div className="flex gap-6">
+        <div className="flex items-center gap-4">
+          <div className="flex gap-6">
           <div className="flex items-center gap-3">
             <div className="text-right">
               <span className="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Deck</span>
@@ -359,12 +361,20 @@ export default function Game({
               <span className="font-mono text-xl text-slate-400 font-black drop-shadow-md">{state.discardPile.length}</span>
             </div>
           </div>
+          <button
+            onClick={() => setShowRules(true)}
+            className="w-10 h-10 rounded-full bg-[#472d1b] border border-[#6f4b2e] text-amber-100 font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#5f3c23] transition-colors"
+            title="Spielregeln anzeigen"
+          >
+            ?
+          </button>
+        </div>
         </div>
       </div>
 
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 flex flex-wrap justify-center gap-2 mb-4">
         {state.players.map(p => (
-          <div key={p.id} className={`relative flex-1 min-w-[350px] 2xl:min-w-[500px] p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${p.id === currentPlayer?.id ? 'border-emerald-400 bg-emerald-900/30 shadow-[0_0_20px_rgba(52,211,153,0.3)]' : 'border-slate-800 bg-slate-900/50'} ${p.status === 'BUSTED' ? 'opacity-50' : ''}`}>
+          <div key={p.id} className={`relative flex-1 min-w-[350px] 2xl:min-w-[500px] p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${p.id === currentPlayer?.id ? 'border-[#b77c3d] bg-[#4b2f18]/30 shadow-[0_0_20px_rgba(183,124,61,0.3)]' : 'border-slate-800 bg-slate-900/50'} ${p.status === 'BUSTED' ? 'opacity-50' : ''}`}>
             {state.phase === 'bust_wait' && p.id === currentPlayer?.id && (
               <BustCountdown onComplete={() => {
                 dispatch({ type: 'TRIGGER_BUST' });
@@ -601,18 +611,47 @@ export default function Game({
       </div>
 
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 mb-20">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-2 h-20 md:h-24 overflow-y-auto flex flex-col-reverse shadow-inner">
+        <div className="bg-[#18120d] border border-[#4b3625] rounded-2xl p-3 h-28 md:h-36 overflow-y-auto flex flex-col-reverse shadow-inner">
           {state.eventLog.slice().reverse().map((log, i) => (
-            <div key={log.id} className={`text-xs md:text-sm py-0.5 ${i === 0 ? 'text-emerald-400 font-bold' : 'text-slate-400'}`}>
+            <div key={log.id} className={`text-[11px] md:text-[13px] leading-snug py-0.5 ${i === 0 ? 'text-amber-300 font-bold' : 'text-stone-400'}`}>
               • {log.msg}
             </div>
           ))}
           {state.eventLog.length === 0 && <div className="text-slate-600 text-xs italic">Spielprotokoll...</div>}
         </div>
       </div>
+      {showRules && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-3xl w-full bg-[#22180f] border border-[#644a2f] rounded-3xl p-6 text-slate-100 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-2xl font-black text-amber-200">Spielregeln</h2>
+                <p className="text-sm text-stone-400 mt-1">Aktuelle Regeln für Version 3.0</p>
+              </div>
+              <button
+                onClick={() => setShowRules(false)}
+                className="w-10 h-10 rounded-full bg-[#422c19] border border-[#6c4a2f] text-amber-100 font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#5a3d25] transition-colors"
+                aria-label="Regeln schließen"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-3 text-sm text-stone-200 leading-relaxed">
+              <p>Ziehe Karten nacheinander und spiele Spezialkarten, um Gegner zu stören und Punkte zu sammeln.</p>
+              <p>Wenn du eine Karte legst, die bereits in deiner Auslage liegt, wirst du busted und dein Zug endet.</p>
+              <p>Flüche können mit einem zweiten Fluch aufgehoben werden. Ein sichtbarer Fluch kann mit Langfinger gestohlen werden, aber keine geheimen oder eingesperrten Karten.</p>
+              <p>Käfig schützt eine Karte: kann nicht gestohlen oder angegriffen werden, bis der Käfig zerstört wird.</p>
+              <p>Geheimfach zieht eine verdeckte Karte. Deren Wert zählt später, sie bleibt verborgen.</p>
+              <p>Auswahlelixir zieht zwei Karten und du wählst eine zum Spielen.</p>
+              <p>Dynamit: Das erste Dynamit markiert einen Spieler, das zweite lässt den ersten Spieler busten.</p>
+              <p>Am Rundenende werden alle nicht gebusteten Kartenwerte addiert. Das Spiel endet, wenn ein Spieler das Ziel erreicht.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Action Area */}
-      <div className="fixed bottom-0 left-0 right-0 bg-slate-900/80 backdrop-blur-md border-t border-slate-800 p-6 flex justify-center z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#20150f]/90 backdrop-blur-md border-t border-[#4b3625] p-6 flex justify-center z-50">
         <div className="max-w-2xl w-full text-center">
 
           {(() => {
@@ -626,14 +665,14 @@ export default function Game({
               <div className="flex gap-4">
                 <button
                   onClick={() => dispatch({ type: 'DRAW_CARD' })}
-                  className="flex-1 py-4 bg-gradient-to-b from-emerald-400 to-emerald-600 text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(4,120,87),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
+                  className="flex-1 py-4 bg-gradient-to-b from-[#8d4f26] to-[#d68d4a] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(114,59,17),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
                 >
                   {hasElixir ? 'Karten ziehen' : 'Karte ziehen'}
                 </button>
                 {currentPlayer.display.length > 0 && (
                   <button
                     onClick={() => dispatch({ type: 'STOP' })}
-                    className="flex-1 py-4 bg-gradient-to-b from-red-500 to-red-700 text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(153,27,27),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
+                    className="flex-1 py-4 bg-gradient-to-b from-[#8b1f13] to-[#5a0d08] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(93,19,12),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
                   >
                     Hör auf!
                   </button>
@@ -657,7 +696,7 @@ export default function Game({
               <span className="text-orange-400 font-bold mb-2 uppercase tracking-widest text-sm">Von hinten geschubst!</span>
               <p className="text-sm text-slate-400 mb-4">Du wurdest geschubst und musst sofort weiterziehen!</p>
               <div className="flex gap-4 w-full">
-                <button onClick={() => dispatch({ type: 'DRAW_CARD' })} className="flex-1 py-4 bg-gradient-to-b from-emerald-400 to-emerald-600 text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(4,120,87),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider">Karte ziehen</button>
+                <button onClick={() => dispatch({ type: 'DRAW_CARD' })} className="flex-1 py-4 bg-gradient-to-b from-[#8d4f26] to-[#d68d4a] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(114,59,17),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider">Karte ziehen</button>
               </div>
             </div>
           )}
@@ -680,7 +719,7 @@ export default function Game({
 
           {state.phase === 'langfinger_decision' && (
             <div>
-              <span className="text-cyan-400 font-bold text-lg uppercase tracking-widest">Langfinger unterwegs!</span>
+              <span className="text-amber-300 font-bold text-lg uppercase tracking-widest">Langfinger unterwegs!</span>
               <p className="text-sm text-slate-400 mt-2">Klicke auf eine Karte eines Mitspielers, um sie zu stehlen.</p>
             </div>
           )}
@@ -732,7 +771,7 @@ export default function Game({
               </div>
               <button
                 onClick={() => dispatch({ type: 'START_NEXT_ROUND' })}
-                className="w-full py-4 bg-gradient-to-b from-emerald-400 to-emerald-600 text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(4,120,87),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
+                className="w-full py-4 bg-gradient-to-b from-[#8d4f26] to-[#d68d4a] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(114,59,17),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
               >
                 Nächste Runde starten
               </button>
