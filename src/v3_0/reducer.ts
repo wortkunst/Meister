@@ -677,18 +677,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                ns.firstDynamitePlayerId = undefined;
            }
            if (armorIndex !== -1) {
-               // Mark cards to be destroyed
+               // Mark cards to be destroyed: Armor and everything to its RIGHT
                p.display = p.display.map((i, idx) => idx >= armorIndex ? { ...i, isBusted: true } : i);
            } else {
+               // No armor: everything is destroyed
                p.display = p.display.map(i => ({ ...i, isBusted: true }));
+               p.status = 'BUSTED'; // Without armor, round ends for this player
            }
            ns.phase = 'bust_anim' as GamePhase;
        } else {
            // Normal Bust
            if (armorIndex !== -1) {
-              // Mark cards to be removed (those AFTER the armor + the card that caused the bust? No, in Captain Flip armor protects EVERYTHING if it's there? Wait.)
-              // User said: "Schrottrüstung erlaubt jetzt das Weiterziehen nach einem Teil-Bust."
-              // "werden alle Karten bis inkl. Schrottrüstung zerstört" (for Dynamit).
               // For normal bust: "Schrottrüstung erlaubt Weiterziehen". 
               // Usually everything after armor is lost.
               // Mark cards to be removed (armor + everything after it)
@@ -722,11 +721,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
        // Protected bust (Dynamite or Armor)
        if (isDynamiteBust) {
            if (armorIndex !== -1) {
-               ns = logEvent(ns, `BUMM! Die Schrottrüstung schützt den hinteren Teil. Weiter geht's!`);
+               ns = logEvent(ns, `BUMM! Die Schrottrüstung schützt den vorderen Teil. Weiter geht's!`);
                p.display = p.display.filter(i => !i.isBusted);
            } else {
                ns = logEvent(ns, `BUMM! Alles weg. Neustart bei Null!`);
                p.display = [];
+               // Round ends for this player if they bust without armor
+               return advanceTurn(ns); 
            }
        } else {
            // Normal bust protected by armor

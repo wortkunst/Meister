@@ -607,7 +607,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           const keptItems = p.display.slice(0, armorIndex);
           const lostItems = p.display.slice(armorIndex).map(i => ({ ...i, isBusted: true }));
           p.display = [...keptItems, ...lostItems];
-          p.status = 'PLAYING';
+          p.status = 'STOPPED';
           ns.players = ns.players.map(pl => pl.id === p.id ? p : pl);
           ns.phase = 'bust_anim' as GamePhase;
           ns = logEvent(ns, `BUMM! Der Rest fliegt in die Luft.`);
@@ -623,15 +623,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'CLEANUP_BUST': {
-        const p = state.players[state.currentPlayerIndex];
-        let ns = { ...state };
-        if (p.status === 'PLAYING') {
-            // Partial bust with armor: remove busted items and continue
-            ns.players = ns.players.map(pl => pl.id === p.id ? { ...p, display: p.display.filter(i => !i.isBusted) } : pl);
-            ns.phase = 'playing';
-            return ns;
-        }
-        return advanceTurn(ns);
+       return advanceTurn(state);
     }
 
     case 'TRIGGER_FLUCH_ANIM': {
