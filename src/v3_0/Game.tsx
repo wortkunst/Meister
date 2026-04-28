@@ -337,8 +337,11 @@ export default function Game({
 
   return (
     <div
-      className="min-h-screen bg-[#130b05] text-white font-sans flex flex-col items-center pt-2 pb-24 relative overflow-hidden bg-mesh-gradient"
+      className="min-h-screen bg-black text-white font-sans flex flex-col items-center pt-2 pb-24 relative overflow-hidden bg-mesh-gradient"
     >
+                  <h1 className="text-4xl font-bold tracking-tighter bg-gradient-to-br from-[#0f5132] to-[#b91c1c] bg-clip-text text-transparent">Setup</h1>
+                        className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-[#0f5132] transition-colors"
+                  className="w-full py-4 bg-gradient-to-b from-[#b91c1c] to-[#7f1d1d] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(127,29,29),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 flex justify-between items-center mb-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-amber-300">V3.0 CAPTAIN TIL</h1>
@@ -364,6 +367,7 @@ export default function Game({
           <button
             onClick={() => setShowRules(true)}
             className="w-10 h-10 rounded-full bg-[#472d1b] border border-[#6f4b2e] text-amber-100 font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#5f3c23] transition-colors"
+                        className="w-10 h-10 rounded-full bg-[#0f5132] border border-[#064e3b] text-amber-100 font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#064e3b] transition-colors"
             title="Spielregeln anzeigen"
           >
             ?
@@ -375,6 +379,7 @@ export default function Game({
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 flex flex-wrap justify-center gap-2 mb-4">
         {state.players.map(p => (
           <div key={p.id} className={`relative flex-1 min-w-[350px] 2xl:min-w-[500px] p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${p.id === currentPlayer?.id ? 'border-[#b77c3d] bg-[#4b2f18]/30 shadow-[0_0_20px_rgba(183,124,61,0.3)]' : 'border-slate-800 bg-slate-900/50'} ${p.status === 'BUSTED' ? 'opacity-50' : ''}`}>
+                      <div key={p.id} className={`relative flex-1 min-w-[350px] 2xl:min-w-[500px] p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${p.id === currentPlayer?.id ? 'border-[#0f5132] bg-[#062e1f]/30 shadow-[0_0_20px_rgba(15,81,50,0.3)]' : 'border-slate-800 bg-slate-900/50'} ${p.status === 'BUSTED' ? 'opacity-50' : ''}`}>
             {state.phase === 'bust_wait' && p.id === currentPlayer?.id && (
               <BustCountdown onComplete={() => {
                 dispatch({ type: 'TRIGGER_BUST' });
@@ -611,7 +616,8 @@ export default function Game({
       </div>
 
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 mb-20">
-        <div className="bg-[#18120d] border border-[#4b3625] rounded-2xl p-3 h-28 md:h-36 overflow-y-auto flex flex-col-reverse shadow-inner">
+      <div className="relative z-10 w-full max-w-full px-2 lg:px-4 mb-20">
+        <div className="bg-black border border-[#0f5132] rounded-2xl p-3 h-44 md:h-56 overflow-y-auto flex flex-col-reverse shadow-inner">
           {state.eventLog.slice().reverse().map((log, i) => (
             <div key={log.id} className={`text-[11px] md:text-[13px] leading-snug py-0.5 ${i === 0 ? 'text-amber-300 font-bold' : 'text-stone-400'}`}>
               • {log.msg}
@@ -623,6 +629,7 @@ export default function Game({
       {showRules && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="max-w-3xl w-full bg-[#22180f] border border-[#644a2f] rounded-3xl p-6 text-slate-100 shadow-2xl">
+                      <div className="max-w-3xl w-full bg-black border border-[#0f5132] rounded-3xl p-6 text-slate-100 shadow-2xl">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
                 <h2 className="text-2xl font-black text-amber-200">Spielregeln</h2>
@@ -631,6 +638,7 @@ export default function Game({
               <button
                 onClick={() => setShowRules(false)}
                 className="w-10 h-10 rounded-full bg-[#422c19] border border-[#6c4a2f] text-amber-100 font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#5a3d25] transition-colors"
+                                className="w-10 h-10 rounded-full bg-[#0f5132] border border-[#064e3b] text-amber-100 font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#064e3b] transition-colors"
                 aria-label="Regeln schließen"
               >
                 ×
@@ -651,7 +659,7 @@ export default function Game({
       )}
 
       {/* Main Action Area */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#20150f]/90 backdrop-blur-md border-t border-[#4b3625] p-6 flex justify-center z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-md border-t border-[#0f5132] p-6 flex justify-center z-50">
         <div className="max-w-2xl w-full text-center">
 
           {(() => {
@@ -665,14 +673,14 @@ export default function Game({
               <div className="flex gap-4">
                 <button
                   onClick={() => dispatch({ type: 'DRAW_CARD' })}
-                  className="flex-1 py-4 bg-gradient-to-b from-[#8d4f26] to-[#d68d4a] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(114,59,17),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
+                  className="flex-1 py-4 bg-gradient-to-b from-[#b91c1c] to-[#7f1d1d] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(127,29,29),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
                 >
                   {hasElixir ? 'Karten ziehen' : 'Karte ziehen'}
                 </button>
                 {currentPlayer.display.length > 0 && (
                   <button
                     onClick={() => dispatch({ type: 'STOP' })}
-                    className="flex-1 py-4 bg-gradient-to-b from-[#8b1f13] to-[#5a0d08] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(93,19,12),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
+                    className="flex-1 py-4 bg-gradient-to-b from-[#7f1d1d] to-[#4f1414] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(79,20,20),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
                   >
                     Hör auf!
                   </button>

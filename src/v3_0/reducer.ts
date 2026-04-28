@@ -400,7 +400,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                     };
                     const { cards: next3Cards, newState: s1 } = getTopCards(ns, 3);
                     s1.pendingCards = next3Cards;
-                    return logEvent(s1, `${p.name} nutzt seine Kristallkugel und schaut die nächsten 3 Karten an...`);
+                    return logEvent(s1, `${p.name} nutzt sein Lugloch und schaut die nächsten 3 Karten an...`);
                 }
 
                 if (rightmost.card.type === 'Geheimfach' && !rightmost.cagedBy && !rightmost.isSecret && !rightmost.geheimfachUsed) {
@@ -487,7 +487,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 pendingCards: [],
                 deck: [...remainingCards, ...state.deck] // Put unchosen back on top
             };
-            ns = logEvent(ns, `Kristallkugel: Eine Karte wurde gewählt und wird gespielt.`);
+            ns = logEvent(ns, `Lugloch: Eine Karte wurde gewählt und wird gespielt.`);
             return playCard(ns, cardToPlay);
         }
 
@@ -497,7 +497,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 deck: [...state.pendingCards, ...state.deck],
                 pendingCards: []
             };
-            ns = logEvent(ns, `Kristallkugel: Alle Karten wurden zurückgelegt.`);
+            ns = logEvent(ns, `Lugloch: Alle Karten wurden zurückgelegt.`);
             return advanceTurn(ns);
         }
 
