@@ -8,8 +8,8 @@ export type CardType =
   | 'Geheimfach'
   | 'Des Meisters Fluch'
   | 'Auswahlelixir'
-  | 'Dynamit'
-  | 'Löschwasser';
+  | 'Langfinger'
+  | 'Dynamit';
 
 export type Card = {
   id: string;
@@ -21,9 +21,16 @@ export type DisplayItem = {
   id: string;
   card: Card;
   cagedBy?: Card;
+  destroyedCageCard?: Card;
   isSecret?: boolean;
   elixirUsed?: boolean;
+  luglochUsed?: boolean;
+  geheimfachUsed?: boolean;
   isBusted?: boolean;
+  isFluchCanceled?: boolean;
+  isHinterhaltDestroyed?: boolean;
+  isCageDestroying?: boolean;
+  isEvaluated?: boolean;
 };
 
 export type GamePhase = 
@@ -35,13 +42,19 @@ export type GamePhase =
   | 'hinterhalt_decision'
   | 'geschubst_decision'
   | 'geheimfach_decision'
+  | 'langfinger_decision'
   | 'round_end' 
-  | 'game_over';
+  | 'game_over'
+  | 'fluch_cancel_anim'
+  | 'fluch_cancel_wait'
+  | 'bust_wait'
+  | 'bust_armor_wait'
+  | 'bust_anim'
+  | 'hinterhalt_anim';
 
 export type Player = {
   id: number;
   name: string;
-  userId?: string;
   score: number;
   roundScore: number;
   display: DisplayItem[];
@@ -49,7 +62,7 @@ export type Player = {
 };
 
 export type GameState = {
-  version: 'v3_0';
+  version: 'v2_0';
   players: Player[];
   currentPlayerIndex: number;
   deck: Card[];
@@ -59,5 +72,7 @@ export type GameState = {
   
   pendingCards: Card[];
   pendingActionCard?: Card;
+  pendingBustCard?: Card;
+  firstDynamitePlayerId?: number;
   eventLog: { id: string, msg: string }[];
 };

@@ -1,8 +1,8 @@
 import { GameState, Card, Player, DisplayItem, GamePhase } from './types';
-import { generateDeck } from './utils';
+import { generateDeck, shuffle } from './utils';
 
 export const initialState: GameState = {
-  version: 'v3_0',
+  version: 'v3_0' as any,
   players: [],
   currentPlayerIndex: 0,
   deck: [],
@@ -18,7 +18,8 @@ function getTopCard(state: GameState): { card: Card, newState: GameState } {
   let discard = [...state.discardPile];
   let newLog = [...state.eventLog];
   if (deck.length === 0) {
-      deck = [...discard].sort(() => Math.random() - 0.5);
+      if (discard.length === 0) return { card: null as any, newState: state };
+      deck = shuffle([...discard]);
       discard = [];
       newLog.push({ id: Math.random().toString(), msg: 'Ablagestapel wurde neu gemischt.' });
   }
@@ -33,19 +34,24 @@ function logEvent(state: GameState, msg: string): GameState {
   return { ...state, eventLog: [...state.eventLog, { id: Math.random().toString(), msg }] };
 }
 
+function getShortName(type: string): string {
+  if (type === 'Von hinten geschubst') return 'Geschubst';
+  if (type === 'Des Meisters Fluch') return 'Fluch';
+  return type;
+}
+
+function hasActiveDynamite(p: Player): boolean {
+    return p.display.some(i => !i.cagedBy && !i.isSecret && i.card.type === 'Dynamit');
+}
+
 function hasValidCageTargets(state: GameState): boolean {
   const p = state.players[state.currentPlayerIndex];
   return p.display.some(i => !i.cagedBy && (i.isSecret || i.card.type !== 'Käfig'));
 }
 
 function causesBust(state: GameState, p: Player, card: Card): boolean {
-  if (card.type === 'Dynamit') {
-    const activeWaters = p.display.filter(i => !i.cagedBy && !i.isSecret && !i.isBusted && i.card.type === 'Löschwasser').length;
-    let activeBombs = p.display.filter(i => !i.cagedBy && !i.isSecret && !i.isBusted && i.card.type === 'Dynamit').length;
-    // Dynamit checks ONLY against Löschwasser. 
-    // If not enough water, you bust. Otherwise, it is safely extinguished and we DO NOT check generic duplicates.
-    return activeWaters <= activeBombs;
-  }
+  // Dynamit is handled separately with the chain mechanic
+  if (card.type === 'Dynamit') return false;
 
   if (card.type === 'Des Meisters Fluch') return false;
   
@@ -84,55 +90,58 @@ function advanceTurn(state: GameState): GameState {
   return ns;
 }
 
+function getTopCards(state: GameState, count: number): { cards: Card[], newState: GameState } {
+  let newState = { ...state };
+  let cards: Card[] = [];
+  
+  for (let i = 0; i < count; i++) {
+    const { card, newState: ns } = getTopCard(newState);
+    if (card) {
+        cards.push(card);
+        newState = ns;
+    } else {
+        break;
+    }
+  }
+  
+  return { cards, newState };
+}
+
 function handleBust(state: GameState, card: Card): GameState {
   let newState = { ...state };
   let newPlayer = { ...newState.players[newState.currentPlayerIndex] };
 
-  const armorIndex = newPlayer.display.findIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Schrottrüstung');
-  let discardedCards: Card[] = [card];
-  
-  if (armorIndex !== -1) {
-    const keptItems = newPlayer.display.slice(0, armorIndex);
-    const lostItems = newPlayer.display.slice(armorIndex).map(i => ({ ...i, isBusted: true }));
-    
-    // We add the card that caused the bust visually as busted as well.
-    const bustedItem: DisplayItem = { id: `busted-${card.id}`, card, isBusted: true };
-
-    newPlayer.display = [...keptItems, ...lostItems, bustedItem];
-    newPlayer.status = 'STOPPED';
-    newState = logEvent(newState, `${newPlayer.name} zieht ${card.type} und bustet! Rüstung rettet einen Teil der Karten.`);
-  } else {
-    newPlayer.display = newPlayer.display.map(i => ({ ...i, isBusted: true }));
-    const bustedItem: DisplayItem = { id: `busted-${card.id}`, card, isBusted: true };
+  // Add the card normally so it flies in, but ONLY if it's not already there
+  const isAlreadyInDisplay = newPlayer.display.some(i => i.card.id === card.id);
+  if (!isAlreadyInDisplay) {
+    const bustedItem: DisplayItem = { id: `busted-${card.id}`, card };
     newPlayer.display = [...newPlayer.display, bustedItem];
-    newPlayer.status = 'BUSTED';
-    newState = logEvent(newState, `${newPlayer.name} zieht ${card.type} und BUSTET komplett!`);
   }
-
-  // We STILL need to keep track of discarded cards so they can be shuffled next round?
-  // Wait, startRound uses generateDeck() now, so discardPile doesn't even matter for the next round!
-  // It only matters if we need to reshuffle mid-round.
-  // Actually, wait, if they are left in display, they shouldn't technically be in discardPile.
-  // Let's just NOT add them to discardPile, since they are still in display!
+  
+  newState.phase = 'bust_wait' as any;
+  newState.pendingBustCard = card;
+  newState = logEvent(newState, `${newPlayer.name} zieht ${card.type} und erlebt einen Bust-Moment!`);
   
   newState.players = newState.players.map(pl => pl.id === newPlayer.id ? newPlayer : pl);
-  
-  return advanceTurn(newState);
+
+  return newState;
 }
 
 function applyFluchCancel(state: GameState, card: Card): GameState {
   const p = state.players[state.currentPlayerIndex];
-  const existingFluchIdx = p.display.findIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Des Meisters Fluch');
-  const existingFluch = p.display[existingFluchIdx];
+  const newItem: DisplayItem = {
+     id: Math.random().toString(),
+     card
+  };
   
-  let newPlayer = { ...p, display: [...p.display] };
-  newPlayer.display.splice(existingFluchIdx, 1);
+  let newDisplay = [...p.display, newItem];
+  let newPlayer = { ...p, display: newDisplay };
   
   let newState = { ...state };
-  newState.discardPile = [...newState.discardPile, existingFluch.card, card];
   newState.players = newState.players.map(pl => pl.id === p.id ? newPlayer : pl);
   newState = logEvent(newState, `${p.name} zieht einen zweiten Fluch. Beide verflüchtigen sich!`);
-  return advanceTurn(newState);
+  
+  return { ...newState, phase: 'fluch_cancel_wait' as any };
 }
 
 function addToDisplay(state: GameState, card: Card, opts?: { isSecret?: boolean }): GameState {
@@ -150,8 +159,37 @@ function addToDisplay(state: GameState, card: Card, opts?: { isSecret?: boolean 
 }
 
 export function playCard(state: GameState, card: Card): GameState {
+  if (!card) return advanceTurn(state);
   const p = state.players[state.currentPlayerIndex];
-  let s = logEvent(state, `${p.name} zieht und spielt: ${card.type}`);
+  let s = logEvent(state, `${p.name} zieht und spielt: ${getShortName(card.type)}`);
+
+  // --- Dynamit chain mechanic ---
+  if (card.type === 'Dynamit') {
+    if (s.firstDynamitePlayerId === undefined) {
+      // First Dynamit: just mark this player and continue normally
+      let s2 = addToDisplay(s, card);
+      s2 = logEvent(s2, `${p.name} hält jetzt das erste Dynamit – Vorsicht!`);
+      s2 = { ...s2, firstDynamitePlayerId: p.id };
+      return advanceTurn(s2);
+    } else {
+      // Second Dynamit: bust the player who holds the first one
+      const firstPlayer = s.players.find(pl => pl.id === s.firstDynamitePlayerId)!;
+      s = logEvent(s, `${p.name} zieht das zweite Dynamit – ${firstPlayer.name} fliegt in die Luft!`);
+
+      // Add the new dynamit card to current player's display first
+      let s2 = addToDisplay(s, card);
+
+      // Now trigger bust for the firstDynamitePlayer
+      const savedIndex = s2.currentPlayerIndex;
+      const bustTargetIndex = s2.players.findIndex(pl => pl.id === firstPlayer.id);
+      s2 = { ...s2, currentPlayerIndex: bustTargetIndex };
+      s2 = handleBust(s2, firstPlayer.display.find(i => i.card.type === 'Dynamit')?.card ?? card);
+      // Restore the current player index
+      s2 = { ...s2, currentPlayerIndex: savedIndex };
+      return s2;
+    }
+  }
+  // --- End Dynamit logic ---
 
   if (causesBust(s, p, card)) {
     return handleBust(s, card);
@@ -178,8 +216,6 @@ export function playCard(state: GameState, card: Card): GameState {
       const opponentsHaveCards = activeOpponents.some(pl => pl.display.length > 0);
 
       // Now we can target anyone who is playing (including ourselves)
-      // The Hinterhalt card itself (the one currently being evaluated) isn't a valid target,
-      // but ANY OTHER card (including other Hinterhalt cards) is a valid target.
       const anyValidTargets = s2.players.some(pl => 
          pl.status === 'PLAYING' && pl.display.some(item => item.card.id !== card.id)
       );
@@ -194,21 +230,26 @@ export function playCard(state: GameState, card: Card): GameState {
 
   if (card.type === 'Lugloch') {
       let s2 = addToDisplay(s, card);
-      const { card: nextCard, newState } = getTopCard(s2);
-      return { ...newState, phase: 'lugloch_decision', pendingCards: [nextCard] };
+      s2 = logEvent(s2, `${p.name} spielt ein Lugloch – beim nächsten Zug darf er einen Blick riskieren!`);
+      return advanceTurn(s2);
   }
 
-  let nextState = addToDisplay(s, card);
-
-  if (card.type === 'Geheimfach') {
-      return { ...nextState, phase: 'geheimfach_decision' };
+  if (card.type === 'Langfinger') {
+      let s2 = addToDisplay(s, card);
+      const opponentsHaveCards = s2.players.some(pl => pl.id !== p.id && pl.status === 'PLAYING' && pl.display.length > 0);
+      if (opponentsHaveCards) {
+          return { ...s2, phase: 'langfinger_decision', pendingActionCard: card };
+      }
+      return advanceTurn(s2);
   }
 
   if (card.type === 'Von hinten geschubst') {
-      return { ...nextState, phase: 'geschubst_decision' };
+      let s2 = addToDisplay(s, card);
+      return { ...s2, phase: 'geschubst_decision' as GamePhase };
   }
 
-  return advanceTurn(nextState);
+  let sFinal = addToDisplay(s, card);
+  return advanceTurn(sFinal);
 }
 
 function scoreRound(state: GameState): GameState {
@@ -252,6 +293,15 @@ function scoreRound(state: GameState): GameState {
 function startRound(state: GameState): GameState {
    const newStart = (state.round) % state.players.length; 
    
+   // Collect all cards from players' displays into the discard pile
+   let returnedCards: Card[] = [];
+   state.players.forEach(p => {
+       p.display.forEach(item => {
+           returnedCards.push(item.card);
+           if (item.cagedBy) returnedCards.push(item.cagedBy);
+       });
+   });
+
    let newPlayers = state.players.map(p => ({
        ...p,
        status: 'PLAYING' as const,
@@ -259,14 +309,24 @@ function startRound(state: GameState): GameState {
        roundScore: 0
    }));
 
+   let newDeck = [...state.deck];
+   let newDiscard = [...state.discardPile, ...returnedCards];
+
+   // If the deck is empty, reshuffle the discard pile
+   if (newDeck.length === 0) {
+       newDeck = newDiscard.sort(() => Math.random() - 0.5);
+       newDiscard = [];
+   }
+
    let ns: GameState = {
        ...state,
-       deck: generateDeck(),
-       discardPile: [],
+       deck: newDeck,
+       discardPile: newDiscard,
        players: newPlayers as Player[],
        round: state.round + 1,
        currentPlayerIndex: newStart,
        phase: 'playing' as GamePhase,
+       firstDynamitePlayerId: undefined,
        eventLog: [] // Clear log per round
    };
 
@@ -277,24 +337,30 @@ function startRound(state: GameState): GameState {
 }
 
 export type GameAction = 
-  | { type: 'START_GAME'; payload: { players: { name: string, userId?: string }[] } }
+  | { type: 'START_GAME'; payload: { playerNames: string[] } }
   | { type: 'DRAW_CARD' }
   | { type: 'STOP' }
   | { type: 'CAGE_TARGET'; payload: { targetId: string } }
   | { type: 'HINTERHALT_TARGET'; payload: { targetPlayerId: number, targetId: string, isCageTarget?: boolean } }
-  | { type: 'LUGLOCH_PLAY' }
+  | { type: 'LUGLOCH_PLAY'; payload?: { index: number } }
   | { type: 'LUGLOCH_RETURN' }
   | { type: 'ELIXIR_CHOOSE'; payload: { index: number } }
+  | { type: 'LANGFINGER_STEAL'; payload: { targetPlayerId: number, targetId: string } }
   | { type: 'DRAW_SECRET_CARD' }
+  | { type: 'TRIGGER_FLUCH_ANIM' }
+  | { type: 'CLEANUP_FLUCH' }
+  | { type: 'TRIGGER_BUST' }
+  | { type: 'TRIGGER_BUST_COUNTDOWN' }
+  | { type: 'CLEANUP_BUST' }
+  | { type: 'CLEANUP_HINTERHALT' }
   | { type: 'START_NEXT_ROUND' };
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'START_GAME': {
-      const players: Player[] = action.payload.players.map((p, idx) => ({
+      const players: Player[] = action.payload.playerNames.map((name, idx) => ({
         id: idx,
-        name: p.name,
-        userId: p.userId,
+        name,
         score: 0,
         roundScore: 0,
         display: [],
@@ -314,6 +380,41 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'DRAW_CARD': {
         const p = state.players[state.currentPlayerIndex];
+
+        // Check for unused Lugloch or Geheimfach (triggers at start of next turn)
+        if (p.display.length > 0 && state.phase === 'playing') {
+            const rightmost = p.display[p.display.length - 1];
+            
+            if (rightmost.card.type === 'Lugloch' && !rightmost.cagedBy && !rightmost.isSecret && !rightmost.luglochUsed) {
+                // Mark the lugloch as used
+                const newDisplay = p.display.map((i, idx) => idx === p.display.length - 1 ? { ...i, luglochUsed: true } : i);
+                const newPlayer = { ...p, display: newDisplay };
+                let ns = {
+                    ...state,
+                    players: state.players.map(pl => pl.id === p.id ? newPlayer : pl),
+                    phase: 'lugloch_decision' as GamePhase
+                };
+                const { cards: next3Cards, newState: s1 } = getTopCards(ns, 3);
+                s1.pendingCards = next3Cards;
+                return logEvent(s1, `${p.name} nutzt seine Kristallkugel und schaut die nächsten 3 Karten an...`);
+            }
+
+            if (rightmost.card.type === 'Geheimfach' && !rightmost.cagedBy && !rightmost.isSecret && !rightmost.geheimfachUsed) {
+                // Mark as used and trigger secret card draw
+                const newDisplay = p.display.map((i, idx) => idx === p.display.length - 1 ? { ...i, geheimfachUsed: true } : i);
+                const newPlayer = { ...p, display: newDisplay };
+                let ns = {
+                    ...state,
+                    players: state.players.map(pl => pl.id === p.id ? newPlayer : pl)
+                };
+                // We directly call the draw secret logic (simplified version of DRAW_SECRET_CARD action)
+                const { card: secretCard, newState: s1 } = getTopCard(ns);
+                let finalS = addToDisplay(s1, secretCard, { isSecret: true });
+                finalS = logEvent(finalS, `${p.name} nutzt sein Geheimfach und zieht eine Karte verdeckt.`);
+                return advanceTurn(finalS);
+            }
+        }
+
         // Check for Elixir
         if (p.display.length > 0 && state.phase === 'playing') {
            const rightmost = p.display[p.display.length - 1];
@@ -354,29 +455,45 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'CAGE_TARGET': {
         const targetId = action.payload.targetId;
         const p = state.players[state.currentPlayerIndex];
+        const targetItem = p.display.find(i => i.id === targetId)!;
         const newDisplay = p.display.map(i => i.id === targetId ? { ...i, cagedBy: state.pendingActionCard } : i);
         const newPlayer = { ...p, display: newDisplay };
         let ns: GameState = { 
            ...state, 
            players: state.players.map(pl => pl.id === p.id ? newPlayer : pl), 
+           discardPile: [...state.discardPile, state.pendingActionCard!], // The cage card is now "used" on the target
            pendingActionCard: undefined 
         };
+        // If the caged card was an active Dynamit, and player has no more active dynamites, remove icon
+        if (targetItem.card.type === 'Dynamit' && ns.firstDynamitePlayerId === p.id) {
+            if (!hasActiveDynamite(newPlayer)) {
+                ns = { ...ns, firstDynamitePlayerId: undefined };
+            }
+        }
         ns = logEvent(ns, `${p.name} sperrt eine Karte in den Käfig.`);
         return advanceTurn(ns);
     }
 
     case 'LUGLOCH_PLAY': {
-        const cardToPlay = state.pendingCards[0];
-        let ns = { ...state, pendingCards: [] };
-        ns = logEvent(ns, `Lugloch: Die gesehene Karte wird gespielt!`);
+        const index = action.payload?.index ?? 0;
+        const cardToPlay = state.pendingCards[index];
+        const remainingCards = state.pendingCards.filter((_, i) => i !== index);
+        let ns = { 
+            ...state, 
+            pendingCards: [], 
+            deck: [...remainingCards, ...state.deck] // Put unchosen back on top
+        };
+        ns = logEvent(ns, `Kristallkugel: Eine Karte wurde gewählt und wird gespielt.`);
         return playCard(ns, cardToPlay);
     }
 
     case 'LUGLOCH_RETURN': {
-        const cardToReturn = state.pendingCards[0];
-        const newDeck = [cardToReturn, ...state.deck];
-        let ns = { ...state, deck: newDeck, pendingCards: [] };
-        ns = logEvent(ns, `Lugloch: Die gesehene Karte wurde verdeckt zurückgelegt.`);
+        let ns = { 
+            ...state, 
+            deck: [...state.pendingCards, ...state.deck], 
+            pendingCards: [] 
+        };
+        ns = logEvent(ns, `Kristallkugel: Alle Karten wurden zurückgelegt.`);
         return advanceTurn(ns);
     }
 
@@ -389,8 +506,39 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
            pendingCards: [], 
            discardPile: [...state.discardPile, discardedCard]
         };
-        ns = logEvent(ns, `Auswahlelixir: Eine Karte wurde gewählt.`);
+        ns = logEvent(ns, `Braukessel: Eine Karte wurde gewählt.`);
         return playCard(ns, chosenCard);
+    }
+
+    case 'LANGFINGER_STEAL': {
+        const { targetPlayerId, targetId } = action.payload;
+        const p = state.players[state.currentPlayerIndex];
+        const victim = state.players.find(pl => pl.id === targetPlayerId)!;
+        const stolenItem = victim.display.find(i => i.id === targetId)!;
+        
+        // Remove from victim
+        const newVictimDisplay = victim.display.filter(i => i.id !== targetId);
+        const newVictim = { ...victim, display: newVictimDisplay };
+        
+        let ns = {
+            ...state,
+            players: state.players.map(pl => pl.id === victim.id ? newVictim : pl),
+            discardPile: [...state.discardPile, state.pendingActionCard!], // Langfinger card is used
+            phase: 'playing' as GamePhase,
+            pendingActionCard: undefined
+        };
+        
+        // If victim loses their last active dynamite, remove icon BEFORE playCard might move it
+        if (stolenItem.card.type === 'Dynamit' && ns.firstDynamitePlayerId === victim.id) {
+            if (!hasActiveDynamite(newVictim)) {
+                ns.firstDynamitePlayerId = undefined;
+            }
+        }
+
+        ns = logEvent(ns, `${state.players[state.currentPlayerIndex].name} stiehlt ${getShortName(stolenItem.card.type)} von ${victim.name}!`);
+        
+        // Add the card to current player (triggers logic)
+        return playCard(ns, stolenItem.card);
     }
 
     case 'DRAW_SECRET_CARD': {
@@ -410,32 +558,70 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         let discardedCard;
         let didBust = false;
         let ns = state;
+        let newFirstDynamitePlayerId = ns.firstDynamitePlayerId;
         
         if (isCageTarget && targetItem.cagedBy) {
-            newDisplay = targetPlayer.display.map(i => i.id === targetId ? { ...i, cagedBy: undefined } : i);
+            // Set flag on the item that HAD the cage, but remove the cage itself from the state
+            // so it's "freed", but we keep the reference for the animation in the UI.
+            newDisplay = targetPlayer.display.map(i => i.id === targetId ? { ...i, cagedBy: undefined, destroyedCageCard: targetItem.cagedBy, isCageDestroying: true } : i);
             discardedCard = targetItem.cagedBy;
             
             // Re-evaluate if this causes a bust for the target player
             const newlyUncoveredType = targetItem.card.type;
-            const activeOfThisType = newDisplay.filter(i => !i.cagedBy && !i.isSecret && !i.isBusted && i.card.type === newlyUncoveredType).length;
+            const activeOfThisType = newDisplay.filter(i => !i.cagedBy && !i.isSecret && !i.isBusted && !i.isCageDestroying && i.card.type === newlyUncoveredType).length;
             
             if (activeOfThisType > 1) {
-                // Secondary Bust triggered!
                 didBust = true;
-                const armorIndex = newDisplay.findIndex(i => !i.cagedBy && !i.isSecret && !i.isBusted && i.card.type === 'Schrottrüstung');
+                const armorIndex = newDisplay.findIndex(i => !i.cagedBy && !i.isSecret && !i.isBusted && !i.isCageDestroying && i.card.type === 'Schrottrüstung');
                 if (armorIndex !== -1) {
                     const keptItems = newDisplay.slice(0, armorIndex);
-                    const lostItems = newDisplay.slice(armorIndex).map(i => ({ ...i, isBusted: true }));
+                    const lostItems = newDisplay.slice(armorIndex).map(i => i.isCageDestroying ? i : { ...i, isBusted: true });
                     newDisplay = [...keptItems, ...lostItems];
                     ns = logEvent(ns, `Kettenreaktion! ${targetPlayer.name} hat nun zweimal ${newlyUncoveredType} und bustet! Rüstung rettet einen Teil.`);
                 } else {
-                    newDisplay = newDisplay.map(i => ({ ...i, isBusted: true }));
+                    newDisplay = newDisplay.map(i => i.isCageDestroying ? i : { ...i, isBusted: true });
                     ns = logEvent(ns, `Fataaal! ${targetPlayer.name} hat nun zweimal ${newlyUncoveredType} und BUSTET komplett!`);
                 }
             }
+
+            // --- Dynamit cage-bust logic ---
+            // If the uncaged card is a Dynamit, it becomes active again
+            if (targetItem.card.type === 'Dynamit') {
+                if (newFirstDynamitePlayerId === undefined) {
+                    // No active first dynamit – this uncaged Dynamit is now the first
+                    newFirstDynamitePlayerId = targetPlayerId;
+                    ns = logEvent(ns, `Das befreite Dynamit bei ${targetPlayer.name} ist jetzt das erste Dynamit!`);
+                } else if (newFirstDynamitePlayerId !== targetPlayerId) {
+                    // There is already a first dynamit owner – they bust now
+                    const firstDynamitPlayer = ns.players.find(pl => pl.id === newFirstDynamitePlayerId)!;
+                    ns = logEvent(ns, `Das befreite Dynamit zündet! ${firstDynamitPlayer.name} fliegt in die Luft!`);
+                    // Trigger bust for the firstDynamitePlayer
+                    const bustTargetIndex = ns.players.findIndex(pl => pl.id === newFirstDynamitePlayerId);
+                    const savedIndex = ns.currentPlayerIndex;
+                    ns = { ...ns, currentPlayerIndex: bustTargetIndex };
+                    ns = handleBust(ns, firstDynamitPlayer.display.find(i => i.card.type === 'Dynamit')?.card ?? targetItem.card);
+                    ns = { ...ns, currentPlayerIndex: bustTargetIndex };
+                    // The uncaged Dynamit becomes the new first
+                    newFirstDynamitePlayerId = targetPlayerId;
+                }
+                // If newFirstDynamitePlayerId === targetPlayerId, the same player re-activates
+                // their own dynamit (edge case: caged their own dynamit and cage was destroyed)
+                // – just keep their icon
+            }
+            // --- End Dynamit cage logic ---
+
         } else {
-            newDisplay = targetPlayer.display.filter(i => i.id !== targetId);
+            // Mark the card as destroyed instead of removing it
+            newDisplay = targetPlayer.display.map(i => i.id === targetId ? { ...i, isHinterhaltDestroyed: true } : i);
             discardedCard = targetItem.card;
+
+            // --- Dynamit direct removal logic ---
+            if (targetItem.card.type === 'Dynamit' && newFirstDynamitePlayerId === targetPlayerId) {
+                if (!hasActiveDynamite(newTargetPlayer)) {
+                    newFirstDynamitePlayerId = undefined;
+                }
+            }
+            // --- End Dynamit removal logic ---
         }
         
         let finalPlayerInfo = { ...targetPlayer, display: newDisplay, status: targetPlayer.status };
@@ -448,10 +634,135 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
            ...ns,
            discardPile: [...ns.discardPile, discardedCard],
            players: ns.players.map(pl => pl.id === targetPlayerId ? finalPlayerInfo : pl),
-           pendingActionCard: undefined
+           pendingActionCard: undefined,
+           phase: 'hinterhalt_anim' as GamePhase,
+           firstDynamitePlayerId: newFirstDynamitePlayerId
         };
         
-        ns = logEvent(ns, `${state.players[state.currentPlayerIndex].name} wirft ${discardedCard.type} von ${targetPlayer.name} ab!`);
+        ns = logEvent(ns, `${state.players[state.currentPlayerIndex].name} wirft ${getShortName(discardedCard.type)} von ${targetPlayer.name} ab!`);
+        return ns;
+    }
+
+    case 'CLEANUP_HINTERHALT': {
+        // Remove all hinterhalt-destroyed items and clear animation flags
+        let ns = { ...state };
+        ns.players = ns.players.map(p => ({
+            ...p,
+            display: p.display
+                .filter(i => !i.isHinterhaltDestroyed)
+                .map(i => ({ ...i, isCageDestroying: false, destroyedCageCard: undefined }))
+        }));
+        return advanceTurn(ns);
+    }
+
+    case 'TRIGGER_BUST_COUNTDOWN': {
+       return { ...state, phase: 'bust_wait' as GamePhase };
+    }
+
+    case 'TRIGGER_BUST': {
+       let ns = { ...state };
+       let p = { ...ns.players[ns.currentPlayerIndex] };
+       
+       if (p.display.length === 0) return { ...ns, phase: 'playing' as GamePhase };
+
+       const isDynamiteBust = state.pendingBustCard?.type === 'Dynamit';
+       const armorIndex = p.display.findIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Schrottrüstung');
+       
+       if (isDynamiteBust) {
+           ns.firstDynamitePlayerId = undefined; // Reset icon on explosion
+           if (armorIndex !== -1) {
+               // Mark cards to be destroyed
+               p.display = p.display.map((i, idx) => idx <= armorIndex ? { ...i, isBusted: true } : i);
+           } else {
+               p.display = p.display.map(i => ({ ...i, isBusted: true }));
+           }
+           ns.phase = 'bust_anim' as GamePhase;
+       } else {
+           // Normal Bust
+           if (armorIndex !== -1) {
+              // Mark cards to be removed (those AFTER the armor + the card that caused the bust? No, in Captain Flip armor protects EVERYTHING if it's there? Wait.)
+              // User said: "Schrottrüstung erlaubt jetzt das Weiterziehen nach einem Teil-Bust."
+              // "werden alle Karten bis inkl. Schrottrüstung zerstört" (for Dynamit).
+              // For normal bust: "Schrottrüstung erlaubt Weiterziehen". 
+              // Usually everything after armor is lost.
+              // Mark cards to be removed (armor + everything after it)
+              p.display = p.display.map((i, idx) => idx >= armorIndex ? { ...i, isBusted: true } : i);
+              ns.phase = 'bust_anim' as GamePhase; 
+           } else {
+              // No protection: End of round for this player
+              p.display = p.display.map(i => ({ ...i, isBusted: true }));
+              p.status = 'BUSTED';
+              ns.phase = 'bust_anim' as GamePhase;
+              ns = logEvent(ns, `BUMM! Komplett gebustet!`);
+           }
+       }
+
+       ns.players = ns.players.map(pl => pl.id === p.id ? p : pl);
+       return ns;
+    }
+
+    case 'CLEANUP_BUST': {
+       let ns = { ...state };
+       let p = { ...ns.players[ns.currentPlayerIndex] };
+       
+       const armorIndex = p.display.findIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Schrottrüstung');
+       const isDynamiteBust = p.display.some(i => i.isBusted && i.card.type === 'Dynamit');
+
+       if (p.status === 'BUSTED') {
+           // Normal bust, turn ends
+           return advanceTurn(ns);
+       }
+
+       // Protected bust (Dynamite or Armor)
+       if (isDynamiteBust) {
+           if (armorIndex !== -1) {
+               ns = logEvent(ns, `BUMM! Die Schrottrüstung schützt den hinteren Teil. Weiter geht's!`);
+               p.display = p.display.slice(armorIndex + 1);
+           } else {
+               ns = logEvent(ns, `BUMM! Alles weg. Neustart bei Null!`);
+               p.display = [];
+           }
+       } else {
+           // Normal bust protected by armor
+           ns = logEvent(ns, `Glück gehabt! Die Schrottrüstung verhindert den vollständigen Bust.`);
+           p.display = p.display.filter(i => !i.isBusted);
+       }
+
+       ns.players = ns.players.map(pl => pl.id === p.id ? p : pl);
+       ns.phase = 'playing' as GamePhase;
+       ns.pendingBustCard = undefined;
+       return ns;
+    }
+
+    case 'TRIGGER_FLUCH_ANIM': {
+        const p = state.players[state.currentPlayerIndex];
+        const existingFluchIdx = p.display.findIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Des Meisters Fluch');
+        const secondFluchIdx = p.display.findLastIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Des Meisters Fluch');
+        
+        let newDisplay = [...p.display];
+        if (existingFluchIdx !== -1) newDisplay[existingFluchIdx] = { ...newDisplay[existingFluchIdx], isFluchCanceled: true };
+        if (secondFluchIdx !== -1) newDisplay[secondFluchIdx] = { ...newDisplay[secondFluchIdx], isFluchCanceled: true };
+        
+        let newPlayer = { ...p, display: newDisplay };
+        let ns = { 
+           ...state, 
+           players: state.players.map(pl => pl.id === p.id ? newPlayer : pl),
+           phase: 'fluch_cancel_anim' as GamePhase
+        };
+        return ns;
+    }
+
+    case 'CLEANUP_FLUCH': {
+        const p = state.players[state.currentPlayerIndex];
+        const canceledItems = p.display.filter(i => i.isFluchCanceled);
+        const newDisplay = p.display.filter(i => !i.isFluchCanceled);
+        
+        let newPlayer = { ...p, display: newDisplay };
+        let ns = { 
+           ...state, 
+           players: state.players.map(pl => pl.id === p.id ? newPlayer : pl),
+           discardPile: [...state.discardPile, ...canceledItems.map(i => i.card)]
+        };
         return advanceTurn(ns);
     }
 

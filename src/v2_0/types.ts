@@ -8,8 +8,7 @@ export type CardType =
   | 'Geheimfach'
   | 'Des Meisters Fluch'
   | 'Auswahlelixir'
-  | 'Dynamit'
-  | 'Löschwasser';
+  | 'Dynamit';
 
 export type Card = {
   id: string;
@@ -21,9 +20,16 @@ export type DisplayItem = {
   id: string;
   card: Card;
   cagedBy?: Card;
+  destroyedCageCard?: Card;
   isSecret?: boolean;
   elixirUsed?: boolean;
+  luglochUsed?: boolean;
+  geheimfachUsed?: boolean;
   isBusted?: boolean;
+  isFluchCanceled?: boolean;
+  isHinterhaltDestroyed?: boolean;
+  isCageDestroying?: boolean;
+  isEvaluated?: boolean;
 };
 
 export type GamePhase = 
@@ -36,7 +42,13 @@ export type GamePhase =
   | 'geschubst_decision'
   | 'geheimfach_decision'
   | 'round_end' 
-  | 'game_over';
+  | 'game_over'
+  | 'fluch_cancel_anim'
+  | 'fluch_cancel_wait'
+  | 'bust_wait'
+  | 'bust_armor_wait'
+  | 'bust_anim'
+  | 'hinterhalt_anim';
 
 export type Player = {
   id: number;
@@ -58,5 +70,6 @@ export type GameState = {
   
   pendingCards: Card[];
   pendingActionCard?: Card;
+  firstDynamitePlayerId?: number;
   eventLog: { id: string, msg: string }[];
 };

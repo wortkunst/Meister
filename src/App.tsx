@@ -3,14 +3,15 @@ import GameV1_0 from './v1_0/Game';
 import GameV1_1 from './v1_1/Game';
 import GameV2_0 from './v2_0/Game';
 import GameV3_0 from './v3_0/Game';
-import { GameState as GameStateV3 } from './v3_0/types';
-import { initialState as initialStateV3 } from './v3_0/reducer';
+import GameV2_0_Multiplayer from './v2_0_multiplayer/Game';
+import { GameState as GameStateV2_Multiplayer } from './v2_0_multiplayer/types';
+import { initialState as initialStateV2_Multiplayer } from './v2_0_multiplayer/reducer';
 import { db } from './firebase';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 export default function App() {
   const [gameMode, setGameMode] = useState<'local' | 'multiplayer'>('local');
-  const [localVersion, setLocalVersion] = useState('v1_0');
+  const [localVersion, setLocalVersion] = useState('v3_0');
   
   // Local state
   const [localPlayers, setLocalPlayers] = useState(['Spieler 1', 'Spieler 2', '', '']);
@@ -23,10 +24,11 @@ export default function App() {
   });
   const [userName, setUserName] = useState(() => localStorage.getItem('cf_user_name') || '');
   const [joinCode, setJoinCode] = useState('');
+  const [nameError, setNameError] = useState(false);
   const [activeRoomCode, setActiveRoomCode] = useState<string | null>(null);
 
   const [isGameStarted, setIsGameStarted] = useState(false);
-  const [activeVersion, setActiveVersion] = useState('v3_0');
+  const [activeVersion, setActiveVersion] = useState('v2_0_multiplayer');
   const [persistedPlayers, setPersistedPlayers] = useState<string[] | null>(null);
 
   useEffect(() => {
@@ -54,25 +56,28 @@ export default function App() {
   };
 
   const handleCreateMultiplayer = async () => {
-      if (!userName.trim()) return;
+      if (!userName.trim()) { setNameError(true); return; }
+      setNameError(false);
       const code = Math.random().toString(36).substring(2, 6).toUpperCase();
       const st = {
-          ...initialStateV3,
+          ...initialStateV2_Multiplayer,
           players: [{ id: 0, name: userName, userId: myUserId, score: 0, roundScore: 0, display: [], status: 'PLAYING' }]
       };
       await setDoc(doc(db, 'games', code), st);
       setActiveRoomCode(code);
-      setActiveVersion('v3_0');
+      setActiveVersion('v2_0_multiplayer');
       setIsGameStarted(true);
       window.history.replaceState(null, '', `?room=${code}`);
   };
 
   const handleJoinMultiplayer = async () => {
-      if (!userName.trim() || !joinCode.trim()) return;
+      if (!userName.trim()) { setNameError(true); return; }
+      setNameError(false);
+      if (!joinCode.trim()) return;
       const code = joinCode.toUpperCase();
       const snapshot = await getDoc(doc(db, 'games', code));
       if (snapshot.exists()) {
-          const data = snapshot.data() as GameStateV3;
+          const data = snapshot.data() as GameStateV2_Multiplayer;
           if (data.phase !== 'setup') {
               alert("Spiel läuft bereits.");
               return;
@@ -96,7 +101,7 @@ export default function App() {
               });
           }
           setActiveRoomCode(code);
-          setActiveVersion('v3_0');
+          setActiveVersion('v2_0_multiplayer');
           setIsGameStarted(true);
           window.history.replaceState(null, '', `?room=${code}`);
       } else {
@@ -151,7 +156,8 @@ export default function App() {
                   {[
                     { id: 'v1_0', label: 'Basis' },
                     { id: 'v1_1', label: 'Push It' },
-                    { id: 'v2_0', label: 'Captain Flip' }
+                    { id: 'v2_0', label: 'Captain Flip' },
+                    { id: 'v3_0', label: 'Captain Til' }
                   ].map(v => (
                     <button
                       key={v.id}
@@ -196,7 +202,7 @@ export default function App() {
                <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Version</label>
                 <div className="w-full py-3 px-4 text-sm font-bold rounded-xl border bg-emerald-600/10 border-emerald-500/30 text-emerald-400">
-                  Version 3.0 (Netzwerk)
+                  Version 2.0 (Netzwerk)
                 </div>
               </div>
 
@@ -206,9 +212,9 @@ export default function App() {
                     <input
                       type="text"
                       value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
+                      onChange={(e) => { setUserName(e.target.value); if (e.target.value.trim()) setNameError(false); }}
                       placeholder="Dein Name"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-medium text-white"
+                      className={`w-full bg-slate-900 border rounded-xl px-4 py-3 outline-none transition-all font-medium text-white ${nameError ? 'border-red-500 ring-2 ring-red-500/50 animate-pulse' : 'border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'}`}
                     />
                  </div>
                  
@@ -232,11 +238,11 @@ export default function App() {
                         value={joinCode}
                         onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                         placeholder="Zimmer-Code"
-                        className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-bold text-white text-center tracking-[0.2em] uppercase"
+                        className="flex-1 min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-bold text-white text-center tracking-[0.2em] uppercase"
                       />
                       <button
                         onClick={handleJoinMultiplayer}
-                        className="px-6 bg-cyan-600 text-white font-bold uppercase tracking-wider rounded-xl hover:bg-cyan-500 focus:ring-4 focus:ring-cyan-500/50 transition-all active:scale-95"
+                        className="shrink-0 px-5 py-3 bg-gradient-to-b from-cyan-500 to-cyan-700 text-white font-black uppercase tracking-wider rounded-xl shadow-[0_4px_0_rgb(14,116,144)] active:shadow-none active:translate-y-[4px] hover:brightness-110 transition-all"
                       >
                         Beitreten
                       </button>
@@ -255,7 +261,8 @@ export default function App() {
       {activeVersion === 'v1_0' && <GameV1_0 onSwitchVersion={handleSwitchVersion} currentVersion={activeVersion} initialPlayers={persistedPlayers} />}
       {activeVersion === 'v1_1' && <GameV1_1 onSwitchVersion={handleSwitchVersion} currentVersion={activeVersion} initialPlayers={persistedPlayers} />}
       {activeVersion === 'v2_0' && <GameV2_0 onSwitchVersion={handleSwitchVersion} currentVersion={activeVersion} initialPlayers={persistedPlayers} />}
-      {activeVersion === 'v3_0' && <GameV3_0 onSwitchVersion={handleSwitchVersion} currentVersion={activeVersion} roomCode={activeRoomCode!} myUserId={myUserId} userName={userName} onExit={handleExitGame} />}
+      {activeVersion === 'v3_0' && <GameV3_0 onSwitchVersion={handleSwitchVersion} currentVersion={activeVersion} initialPlayers={persistedPlayers} />}
+      {activeVersion === 'v2_0_multiplayer' && <GameV2_0_Multiplayer onSwitchVersion={handleSwitchVersion} currentVersion={activeVersion} roomCode={activeRoomCode!} myUserId={myUserId} userName={userName} onExit={handleExitGame} />}
     </>
   );
 }

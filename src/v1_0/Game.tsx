@@ -106,7 +106,7 @@ export default function Game({
           onChange={(e) => handleSwitchVersion(e.target.value)}
           className="cursor-pointer bg-slate-800 text-slate-300 border border-slate-600 rounded px-2 py-1 text-xs outline-none focus:border-slate-400"
         >
-          <option value="v3_0">V 2.0 Captain Flip</option>
+          <option value="v2_0">V 2.0 Captain Flip</option>
           <option value="v1_1">V 1.1 Push it</option>
           <option value="v1_0">V 1.0 OG</option>
         </select>
@@ -149,7 +149,7 @@ export default function Game({
               onChange={(e) => onSwitchVersion(e.target.value, playerNames.filter(n => n.trim() !== ''))}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 outline-none focus:border-red-500 text-white font-medium"
             >
-              <option value="v3_0">V 3.0 Multiplayer</option>
+              <option value="v2_0_multiplayer">V 2.0 Multiplayer</option>
               <option value="v2_0">V 2.0 Captain Flip</option>
               <option value="v1_1">V 1.1 Push it</option>
               <option value="v1_0">V 1.0 OG</option>

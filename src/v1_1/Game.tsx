@@ -87,7 +87,7 @@ export default function Game({ onSwitchVersion, currentVersion, initialPlayers }
           onChange={(e) => onSwitchVersion(e.target.value, state.players.map(p => p.name))}
           className="cursor-pointer bg-slate-800 text-slate-300 border border-slate-600 rounded px-2 py-1 text-xs outline-none focus:border-slate-400"
         >
-          <option value="v3_0">V 2.0 Captain Flip</option>
+          <option value="v2_0">V 2.0 Captain Flip</option>
           <option value="v1_1">V 1.1 Push it</option>
           <option value="v1_0">V 1.0 OG</option>
         </select>
@@ -149,7 +149,7 @@ export default function Game({ onSwitchVersion, currentVersion, initialPlayers }
               onChange={(e) => onSwitchVersion(e.target.value, playerNames.filter(n => n.trim() !== ''))}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-purple-500 text-white font-medium"
             >
-              <option value="v3_0">V 3.0 Multiplayer</option>
+              <option value="v2_0_multiplayer">V 2.0 Multiplayer</option>
               <option value="v2_0">V 2.0 Captain Flip</option>
               <option value="v1_1">V 1.1 Push it</option>
               <option value="v1_0">V 1.0 OG</option>
@@ -248,7 +248,7 @@ export default function Game({ onSwitchVersion, currentVersion, initialPlayers }
                 const count = remainingMasters[val as keyof typeof remainingMasters];
                 const total = totalMasters[val as keyof typeof totalMasters];
                 return (
-                  <li key={val} className="flex items-center gap-1">
+                  <li key={val} className="flex items-center gap-2">
                     {Array.from({ length: total }).map((_, i) => (
                       <span key={i} className={i >= count ? "line-through text-red-500" : "text-white"}>
                         {val}

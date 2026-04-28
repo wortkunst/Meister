@@ -21,8 +21,8 @@ export function generateDeck(): Card[] {
     addStandard('Lugloch');
     addStandard('Geheimfach');
     addStandard('Auswahlelixir');
+    addStandard('Langfinger');
     addStandard('Dynamit');
-    addStandard('Löschwasser');
     
     // Glitzerklunker: 4, 5, 6
     addValues('Glitzerklunker', [4,4,4, 5,5,5, 6,6,6]);
