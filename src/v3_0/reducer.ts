@@ -219,8 +219,9 @@ export function playCard(state: GameState, card: Card): GameState {
       const opponentsHaveCards = activeOpponents.some(pl => pl.display.length > 0);
 
       // Now we can target anyone who is playing (including ourselves)
+      // BUT we cannot target cards protected by a cage in Version 3.0
       const anyValidTargets = s2.players.some(pl => 
-         pl.status === 'PLAYING' && pl.display.some(item => item.card.id !== card.id)
+         pl.status === 'PLAYING' && pl.display.some(item => item.card.id !== card.id && !item.cagedBy)
       );
 
       if (anyValidTargets) {
@@ -239,7 +240,7 @@ export function playCard(state: GameState, card: Card): GameState {
 
   if (card.type === 'Langfinger') {
       let s2 = addToDisplay(s, card);
-      const opponentsHaveCards = s2.players.some(pl => pl.id !== p.id && pl.status === 'PLAYING' && pl.display.length > 0);
+      const opponentsHaveCards = s2.players.some(pl => pl.id !== p.id && pl.status === 'PLAYING' && pl.display.some(item => !item.cagedBy));
       if (opponentsHaveCards) {
           return { ...s2, phase: 'langfinger_decision', pendingActionCard: card };
       }
@@ -519,6 +520,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const victim = state.players.find(pl => pl.id === targetPlayerId)!;
         const stolenItem = victim.display.find(i => i.id === targetId)!;
         
+        // Guard: Cannot steal caged cards in V3
+        if (stolenItem.cagedBy) {
+            return state;
+        }
+        
         // Remove from victim
         const newVictimDisplay = victim.display.filter(i => i.id !== targetId);
         const newVictim = { ...victim, display: newVictimDisplay };
@@ -563,6 +569,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         let ns = state;
         let newFirstDynamitePlayerId = ns.firstDynamitePlayerId;
         
+        // Guard: Cannot target caged cards in V3
+        if (targetItem.cagedBy) {
+            return state;
+        }
+
         if (isCageTarget && targetItem.cagedBy) {
             // Set flag on the item that HAD the cage, but remove the cage itself from the state
             // so it's "freed", but we keep the reference for the animation in the UI.

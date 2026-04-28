@@ -422,10 +422,9 @@ export default function Game({
                 const canTargetWithHinterhalt = p.status === 'PLAYING'; // Anyone playing can be targeted
 
                 const isHinterhaltTargetableBase = state.phase === 'hinterhalt_decision' && !item.isSecret && !item.cagedBy;
-                const isHinterhaltTargetableCage = state.phase === 'hinterhalt_decision' && !item.isSecret && !!item.cagedBy;
-                const isLangfingerTargetable = state.phase === 'langfinger_decision' && p.id !== currentPlayer?.id && !item.isSecret;
+                const isLangfingerTargetable = state.phase === 'langfinger_decision' && p.id !== currentPlayer?.id && !item.isSecret && !item.cagedBy;
                 const isCageTargetable = state.phase === 'cage_decision' && p.id === currentPlayer?.id && !item.cagedBy && (item.isSecret || item.card.type !== 'Käfig');
-                const selectable = isCageTargetable || isHinterhaltTargetableBase || isHinterhaltTargetableCage || isLangfingerTargetable;
+                const selectable = isCageTargetable || isHinterhaltTargetableBase || isLangfingerTargetable;
 
                 let animInitial: any = { opacity: 0, x: 200, y: -400, scale: 0.2, rotate: 45, filter: 'grayscale(0%) opacity(1)' };
                 let animAnimate: any = { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0, filter: 'grayscale(0%) opacity(1)' };
