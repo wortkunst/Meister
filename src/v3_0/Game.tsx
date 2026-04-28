@@ -18,16 +18,16 @@ const typeIcons: Record<string, React.ReactNode> = {
 };
 
 const typeColors: Record<string, { bg: string, text: string, border: string }> = {
-  'Käfig': { bg: 'bg-[#241f1a]', text: 'text-stone-300', border: 'border-[#4e4437]' },
-  'Hinterhalt!': { bg: 'bg-[#5a3216]', text: 'text-amber-200', border: 'border-[#7f4a1f]' },
-  'Schrottrüstung': { bg: 'bg-[#2b2a28]', text: 'text-slate-300', border: 'border-[#4f4b43]' },
-  'Glitzerklunker': { bg: 'bg-[#4b3b12]', text: 'text-amber-200', border: 'border-[#7c5d2e]' },
-  'Von hinten geschubst': { bg: 'bg-[#5d271e]', text: 'text-rose-200', border: 'border-[#7f3f2f]' },
-  'Lugloch': { bg: 'bg-[#2f1f17]', text: 'text-amber-200', border: 'border-[#53382d]' },
-  'Geheimfach': { bg: 'bg-[#2a1f19]', text: 'text-slate-300', border: 'border-[#53463d]' },
-  'Des Meisters Fluch': { bg: 'bg-[#3b1212]', text: 'text-red-200', border: 'border-red-700' },
-  'Auswahlelixir': { bg: 'bg-[#3d2614]', text: 'text-amber-200', border: 'border-[#7e5d3d]' },
-  'Dynamit': { bg: 'bg-[#5c1414]', text: 'text-red-100', border: 'border-[#7f1d1d]' },
+  'Käfig': { bg: 'bg-[#0b0b0b]', text: 'text-white', border: 'border-[#111827]' },
+  'Hinterhalt!': { bg: 'bg-[#0b0b0b]', text: 'text-white', border: 'border-[#b91c1c]' },
+  'Schrottrüstung': { bg: 'bg-[#0b0b0b]', text: 'text-white', border: 'border-[#111827]' },
+  'Glitzerklunker': { bg: 'bg-[#064e3b]', text: 'text-white', border: 'border-[#065f46]' },
+  'Von hinten geschubst': { bg: 'bg-[#0b0b0b]', text: 'text-white', border: 'border-[#b91c1c]' },
+  'Lugloch': { bg: 'bg-[#0b0b0b]', text: 'text-white', border: 'border-[#111827]' },
+  'Geheimfach': { bg: 'bg-[#0b0b0b]', text: 'text-white', border: 'border-[#111827]' },
+  'Des Meisters Fluch': { bg: 'bg-[#0b0b0b]', text: 'text-white', border: 'border-[#b91c1c]' },
+  'Auswahlelixir': { bg: 'bg-[#0b0b0b]', text: 'text-white', border: 'border-[#065f46]' },
+  'Dynamit': { bg: 'bg-[#b91c1c]', text: 'text-red-100', border: 'border-[#7f1d1d]' },
 };
 
 const imageMap: Record<string, string> = {
@@ -278,8 +278,8 @@ export default function Game({
 
   if (state.phase === 'setup') {
     return (
-      <div className="min-h-screen bg-[#130b05] text-white p-8 flex flex-col items-center justify-center font-sans relative overflow-hidden bg-mesh-gradient">
-        <div className="relative z-10 max-w-md w-full bg-[#1f160f] border border-[#3e2d22] p-8 rounded-3xl shadow-2xl">
+      <div className="min-h-screen bg-[#050505] text-white p-8 flex flex-col items-center justify-center font-sans relative overflow-hidden bg-mesh-gradient">
+        <div className="relative z-10 max-w-md w-full bg-[#0b0b0b] border border-[#111827] p-8 rounded-3xl shadow-2xl">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-4xl font-bold tracking-tighter bg-gradient-to-br from-[#b77c3d] to-[#f0c27a] bg-clip-text text-transparent">Setup</h1>
             <select
@@ -318,15 +318,23 @@ export default function Game({
             disabled={playerNames.filter(n => n.trim() !== '').length < 2}
             className="w-full py-4 bg-gradient-to-b from-[#8d4f26] to-[#d68d4a] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(114,59,17),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            V2.0 Starten
+            V3.0 Starten
           </button>
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => setShowRules(true)}
+              className="w-10 h-10 rounded-full bg-[#0f5132] border border-[#065f46] text-white font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#065f46] transition-colors"
+              title="Spielregeln anzeigen"
+            >
+              ?
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   useEffect(() => {
-    // Pre-cache all game images
     Object.values(imageMap).forEach(url => {
       const img = new Image();
       img.src = url;
@@ -339,9 +347,6 @@ export default function Game({
     <div
       className="min-h-screen bg-black text-white font-sans flex flex-col items-center pt-2 pb-24 relative overflow-hidden bg-mesh-gradient"
     >
-                  <h1 className="text-4xl font-bold tracking-tighter bg-gradient-to-br from-[#0f5132] to-[#b91c1c] bg-clip-text text-transparent">Setup</h1>
-                        className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-[#0f5132] transition-colors"
-                  className="w-full py-4 bg-gradient-to-b from-[#b91c1c] to-[#7f1d1d] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(127,29,29),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 flex justify-between items-center mb-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-amber-300">V3.0 CAPTAIN TIL</h1>
@@ -349,37 +354,35 @@ export default function Game({
         </div>
         <div className="flex items-center gap-4">
           <div className="flex gap-6">
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <span className="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Deck</span>
-              <span className="font-mono text-xl text-slate-300 font-black drop-shadow-md">{state.deck.length}</span>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <span className="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Deck</span>
+                <span className="font-mono text-xl text-slate-300 font-black drop-shadow-md">{state.deck.length}</span>
+              </div>
+              <div className="relative w-8 md:w-10 aspect-[1050/1498] rounded-md shadow-[0_4px_10px_rgba(0,0,0,0.5)] overflow-hidden border border-slate-700 transform rotate-[4deg]">
+                <img src="/images/rueckseite.png" alt="Deck" className="absolute inset-0 w-full h-full object-cover" />
+              </div>
             </div>
-            <div className="relative w-8 md:w-10 aspect-[1050/1498] rounded-md shadow-[0_4px_10px_rgba(0,0,0,0.5)] overflow-hidden border border-slate-700 transform rotate-[4deg]">
-              <img src="/images/rueckseite.png" alt="Deck" className="absolute inset-0 w-full h-full object-cover" />
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <span className="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Ablage</span>
-              <span className="font-mono text-xl text-slate-400 font-black drop-shadow-md">{state.discardPile.length}</span>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <span className="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Ablage</span>
+                <span className="font-mono text-xl text-slate-400 font-black drop-shadow-md">{state.discardPile.length}</span>
+              </div>
             </div>
           </div>
           <button
             onClick={() => setShowRules(true)}
-            className="w-10 h-10 rounded-full bg-[#472d1b] border border-[#6f4b2e] text-amber-100 font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#5f3c23] transition-colors"
-                        className="w-10 h-10 rounded-full bg-[#0f5132] border border-[#064e3b] text-amber-100 font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#064e3b] transition-colors"
+            className="w-10 h-10 rounded-full bg-[#0f5132] border border-[#065f46] text-white font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#065f46] transition-colors"
             title="Spielregeln anzeigen"
           >
             ?
           </button>
         </div>
-        </div>
       </div>
 
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 flex flex-wrap justify-center gap-2 mb-4">
         {state.players.map(p => (
-          <div key={p.id} className={`relative flex-1 min-w-[350px] 2xl:min-w-[500px] p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${p.id === currentPlayer?.id ? 'border-[#b77c3d] bg-[#4b2f18]/30 shadow-[0_0_20px_rgba(183,124,61,0.3)]' : 'border-slate-800 bg-slate-900/50'} ${p.status === 'BUSTED' ? 'opacity-50' : ''}`}>
-                      <div key={p.id} className={`relative flex-1 min-w-[350px] 2xl:min-w-[500px] p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${p.id === currentPlayer?.id ? 'border-[#0f5132] bg-[#062e1f]/30 shadow-[0_0_20px_rgba(15,81,50,0.3)]' : 'border-slate-800 bg-slate-900/50'} ${p.status === 'BUSTED' ? 'opacity-50' : ''}`}>
+          <div key={p.id} className={`relative flex-1 min-w-[350px] 2xl:min-w-[500px] p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${p.id === currentPlayer?.id ? 'border-[#0f5132] bg-[#062e1f]/30 shadow-[0_0_20px_rgba(15,81,50,0.3)]' : 'border-slate-800 bg-slate-900/50'} ${p.status === 'BUSTED' ? 'opacity-50' : ''}`}>
             {state.phase === 'bust_wait' && p.id === currentPlayer?.id && (
               <BustCountdown onComplete={() => {
                 dispatch({ type: 'TRIGGER_BUST' });
@@ -433,10 +436,9 @@ export default function Game({
 
             <div className={`flex flex-wrap overflow-y-visible pb-4 pt-2 px-2 items-start transition-all duration-700 ${p.status === 'STOPPED' ? 'grayscale-[60%] opacity-80' : ''}`} style={{ gap: '0.5rem', maxWidth: 'min(100%, calc(5 * 10rem + 4 * 0.5rem))' }}>
               {p.display.map((item, idx) => {
-                const opponentsHaveCards = state.players.some(pl => pl.id !== currentPlayer?.id && pl.status === 'PLAYING' && pl.display.length > 0);
-                const canTargetWithHinterhalt = p.status === 'PLAYING'; // Anyone playing can be targeted
-
-                const isHinterhaltTargetableBase = state.phase === 'hinterhalt_decision' && !item.isSecret && !item.cagedBy;
+                // Do not allow targeting yourself with Hinterhalt or Langfinger
+                const isHinterhaltTargetableBase = state.phase === 'hinterhalt_decision' && p.id !== currentPlayer?.id && !item.isSecret && !item.cagedBy;
+                const isHinterhaltTargetableCage = state.phase === 'hinterhalt_decision' && p.id !== currentPlayer?.id && !!item.cagedBy;
                 const isLangfingerTargetable = state.phase === 'langfinger_decision' && p.id !== currentPlayer?.id && !item.isSecret && !item.cagedBy;
                 const isCageTargetable = state.phase === 'cage_decision' && p.id === currentPlayer?.id && !item.cagedBy && (item.isSecret || item.card.type !== 'Käfig');
                 const selectable = isCageTargetable || isHinterhaltTargetableBase || isLangfingerTargetable;
@@ -616,7 +618,6 @@ export default function Game({
       </div>
 
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 mb-20">
-      <div className="relative z-10 w-full max-w-full px-2 lg:px-4 mb-20">
         <div className="bg-black border border-[#0f5132] rounded-2xl p-3 h-44 md:h-56 overflow-y-auto flex flex-col-reverse shadow-inner">
           {state.eventLog.slice().reverse().map((log, i) => (
             <div key={log.id} className={`text-[11px] md:text-[13px] leading-snug py-0.5 ${i === 0 ? 'text-amber-300 font-bold' : 'text-stone-400'}`}>
@@ -628,8 +629,7 @@ export default function Game({
       </div>
       {showRules && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-3xl w-full bg-[#22180f] border border-[#644a2f] rounded-3xl p-6 text-slate-100 shadow-2xl">
-                      <div className="max-w-3xl w-full bg-black border border-[#0f5132] rounded-3xl p-6 text-slate-100 shadow-2xl">
+          <div className="max-w-3xl w-full bg-black border border-[#0f5132] rounded-3xl p-6 text-slate-100 shadow-2xl">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
                 <h2 className="text-2xl font-black text-amber-200">Spielregeln</h2>
@@ -637,8 +637,7 @@ export default function Game({
               </div>
               <button
                 onClick={() => setShowRules(false)}
-                className="w-10 h-10 rounded-full bg-[#422c19] border border-[#6c4a2f] text-amber-100 font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#5a3d25] transition-colors"
-                                className="w-10 h-10 rounded-full bg-[#0f5132] border border-[#064e3b] text-amber-100 font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#064e3b] transition-colors"
+                className="w-10 h-10 rounded-full bg-[#0f5132] border border-[#065f46] text-white font-black text-xl shadow-[0_4px_0_rgba(0,0,0,0.35)] hover:bg-[#065f46] transition-colors"
                 aria-label="Regeln schließen"
               >
                 ×
