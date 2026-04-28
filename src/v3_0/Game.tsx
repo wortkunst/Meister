@@ -383,7 +383,7 @@ export default function Game({
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 flex flex-wrap justify-center gap-2 mb-4">
         {state.players.map(p => (
           <div key={p.id} className={`relative flex-1 min-w-[350px] 2xl:min-w-[500px] p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${p.id === currentPlayer?.id ? 'border-[#0f5132] bg-[#062e1f]/30 shadow-[0_0_20px_rgba(15,81,50,0.3)]' : 'border-slate-800 bg-slate-900/50'} ${p.status === 'BUSTED' ? 'opacity-50' : ''}`}>
-            {state.phase === 'bust_wait' && p.id === currentPlayer?.id && (
+            {state.phase === 'bust_wait' && p.id === (state.pendingBustPlayerId ?? currentPlayer?.id) && (
               <BustCountdown onComplete={() => {
                 dispatch({ type: 'TRIGGER_BUST' });
               }} />
@@ -441,7 +441,7 @@ export default function Game({
                 const isHinterhaltTargetableCage = state.phase === 'hinterhalt_decision' && p.id !== currentPlayer?.id && !!item.cagedBy;
                 const isLangfingerTargetable = state.phase === 'langfinger_decision' && p.id !== currentPlayer?.id && !item.isSecret && !item.cagedBy;
                 const isCageTargetable = state.phase === 'cage_decision' && p.id === currentPlayer?.id && !item.cagedBy && (item.isSecret || item.card.type !== 'Käfig');
-                const selectable = isCageTargetable || isHinterhaltTargetableBase || isLangfingerTargetable;
+                const selectable = isCageTargetable || isHinterhaltTargetableBase || isHinterhaltTargetableCage || isLangfingerTargetable;
 
                 let animInitial: any = { opacity: 0, x: 200, y: -400, scale: 0.2, rotate: 45, filter: 'grayscale(0%) opacity(1)' };
                 let animAnimate: any = { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0, filter: 'grayscale(0%) opacity(1)' };
@@ -651,7 +651,14 @@ export default function Game({
               <p>Geheimfach zieht eine verdeckte Karte. Deren Wert zählt später, sie bleibt verborgen.</p>
               <p>Auswahlelixir zieht zwei Karten und du wählst eine zum Spielen.</p>
               <p>Dynamit: Das erste Dynamit markiert einen Spieler, das zweite lässt den ersten Spieler busten.</p>
-              <p>Am Rundenende werden alle nicht gebusteten Kartenwerte addiert. Das Spiel endet, wenn ein Spieler das Ziel erreicht.</p>
+              <p>Mit STOP beendest du deinen Zug freiwillig. Nur gestoppte Spieler sichern ihre Rundenauslage fuer die Wertung; komplett gebustete Spieler bekommen in der Runde 0 Punkte.</p>
+              <p>Schrottruestung federt einen Bust ab: Die Ruestung und alles rechts davon gehen verloren, der vordere Teil der Auslage bleibt erhalten. Ohne Ruestung ist bei einem Bust die ganze offene Auslage weg.</p>
+              <p>Lugloch aktiviert sich beim naechsten Zug und zeigt dir die naechsten drei Karten. Du darfst genau eine davon spielen oder alle wieder oben aufs Deck zuruecklegen.</p>
+              <p>Von hinten geschubst zwingt dich sofort zu einem weiteren Zug. Du darfst in diesem Moment nicht einfach stoppen, sondern musst direkt erneut ziehen.</p>
+              <p>Langfinger stiehlt eine sichtbare, nicht eingesperrte Karte eines Mitspielers. Eingesperrte und geheime Karten sind kein gueltiges Ziel.</p>
+              <p>Hinterhalt wirft eine Karte eines Gegners ab. Ist die Zielkarte eingesperrt, triffst du stattdessen den Kaefig; die eingeschlossene Karte wird dadurch wieder frei und kann sofort neue Bust-Ketten ausloesen.</p>
+              <p>Dynamit arbeitet als Staffelstab: Das erste offene Dynamit markiert seinen Besitzer. Sobald ein anderes offenes Dynamit ins Spiel kommt, bustet der bisher markierte Spieler und das neue Dynamit markiert ab dann seinen neuen Besitzer.</p>
+              <p>Am Rundenende werden alle nicht gebusteten Kartenwerte addiert, inklusive offener Kaefige und zuvor geheimer Karten. Das Spiel endet, sobald ein Spieler das Ziel von 50 Punkten erreicht oder ueberschreitet.</p>
             </div>
           </div>
         </div>

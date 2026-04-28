@@ -41,7 +41,11 @@ function getShortName(type: string): string {
 }
 
 function hasActiveDynamite(p: Player): boolean {
-    return p.display.some(i => !i.cagedBy && !i.isSecret && i.card.type === 'Dynamit');
+    return p.display.some(i => !i.cagedBy && !i.isSecret && !i.isBusted && !i.isHinterhaltDestroyed && i.card.type === 'Dynamit');
+}
+
+function hasActiveDynamiteInDisplay(display: DisplayItem[]): boolean {
+    return display.some(i => !i.cagedBy && !i.isSecret && !i.isBusted && !i.isHinterhaltDestroyed && i.card.type === 'Dynamit');
 }
 
 function hasValidCageTargets(state: GameState): boolean {
@@ -107,9 +111,10 @@ function getTopCards(state: GameState, count: number): { cards: Card[], newState
     return { cards, newState };
 }
 
-function handleBust(state: GameState, card: Card): GameState {
+function handleBust(state: GameState, card: Card, bustPlayerId?: number): GameState {
     let newState = { ...state };
-    let newPlayer = { ...newState.players[newState.currentPlayerIndex] };
+    const targetPlayerId = bustPlayerId ?? newState.players[newState.currentPlayerIndex].id;
+    let newPlayer = { ...newState.players.find(pl => pl.id === targetPlayerId)! };
 
     // Add the card normally so it flies in, but ONLY if it's not already there
     const isAlreadyInDisplay = newPlayer.display.some(i => i.card.id === card.id);
@@ -120,6 +125,7 @@ function handleBust(state: GameState, card: Card): GameState {
 
     newState.phase = 'bust_wait' as any;
     newState.pendingBustCard = card;
+    newState.pendingBustPlayerId = targetPlayerId;
     newState = logEvent(newState, `${newPlayer.name} zieht ${card.type} und erlebt einen Bust-Moment!`);
 
     newState.players = newState.players.map(pl => pl.id === newPlayer.id ? newPlayer : pl);
@@ -183,12 +189,7 @@ export function playCard(state: GameState, card: Card): GameState {
             s2 = { ...s2, firstDynamitePlayerId: p.id };
 
             // Now trigger bust for the firstDynamitePlayer
-            const savedIndex = s2.currentPlayerIndex;
-            const bustTargetIndex = s2.players.findIndex(pl => pl.id === firstPlayer.id);
-            s2 = { ...s2, currentPlayerIndex: bustTargetIndex };
-            s2 = handleBust(s2, firstPlayer.display.find(i => i.card.type === 'Dynamit')?.card ?? card);
-            // Restore the current player index
-            s2 = { ...s2, currentPlayerIndex: savedIndex };
+            s2 = handleBust(s2, firstPlayer.display.find(i => i.card.type === 'Dynamit')?.card ?? card, firstPlayer.id);
             return s2;
         }
     }
@@ -215,13 +216,9 @@ export function playCard(state: GameState, card: Card): GameState {
 
     if (card.type === 'Hinterhalt!') {
         let s2 = addToDisplay(s, card);
-        const activeOpponents = s2.players.filter(pl => pl.id !== p.id && pl.status === 'PLAYING');
-        const opponentsHaveCards = activeOpponents.some(pl => pl.display.length > 0);
-
-        // Now we can target anyone who is playing (including ourselves)
-        // BUT we cannot target cards protected by a cage in Version 3.0
+        // In V3 the card can hit any opponent card; if a card is caged, the cage itself is the target.
         const anyValidTargets = s2.players.some(pl =>
-            pl.status === 'PLAYING' && pl.display.some(item => item.card.id !== card.id && !item.cagedBy)
+            pl.id !== p.id && pl.display.some(item => item.card.id !== card.id)
         );
 
         if (anyValidTargets) {
@@ -520,19 +517,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             const victim = state.players.find(pl => pl.id === targetPlayerId)!;
             const stolenItem = victim.display.find(i => i.id === targetId)!;
 
-            // DEBUG: log attempted steal type and caged state
-            let sdbg = logEvent(state, `DEBUG: Langfinger versucht auf ${stolenItem.card.type} (caged=${!!stolenItem.cagedBy})`);
-
             // Guard: Cannot steal caged cards in V3
             if (stolenItem.cagedBy) {
-                return sdbg;
+                return state;
             }
 
             // Remove from victim
             const newVictimDisplay = victim.display.filter(i => i.id !== targetId);
             const newVictim = { ...victim, display: newVictimDisplay };
 
-            let ns = {
+            let ns: GameState = {
                 ...state,
                 players: state.players.map(pl => pl.id === victim.id ? newVictim : pl),
                 discardPile: [...state.discardPile, state.pendingActionCard!], // Langfinger card is used
@@ -572,8 +566,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             let ns = state;
             let newFirstDynamitePlayerId = ns.firstDynamitePlayerId;
 
-            // Guard: Cannot target caged cards in V3
-            if (targetItem.cagedBy) {
+            if (targetItem.cagedBy && !isCageTarget) {
                 return state;
             }
 
@@ -613,11 +606,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                         const firstDynamitPlayer = ns.players.find(pl => pl.id === newFirstDynamitePlayerId)!;
                         ns = logEvent(ns, `Das befreite Dynamit zündet! ${firstDynamitPlayer.name} fliegt in die Luft!`);
                         // Trigger bust for the firstDynamitePlayer
-                        const bustTargetIndex = ns.players.findIndex(pl => pl.id === newFirstDynamitePlayerId);
-                        const savedIndex = ns.currentPlayerIndex;
-                        ns = { ...ns, currentPlayerIndex: bustTargetIndex };
-                        ns = handleBust(ns, firstDynamitPlayer.display.find(i => i.card.type === 'Dynamit')?.card ?? targetItem.card);
-                        ns = { ...ns, currentPlayerIndex: savedIndex };
+                        ns = handleBust(ns, firstDynamitPlayer.display.find(i => i.card.type === 'Dynamit')?.card ?? targetItem.card, firstDynamitPlayer.id);
                         // The uncaged Dynamit becomes the new first
                         newFirstDynamitePlayerId = targetPlayerId;
                     }
@@ -634,7 +623,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
                 // --- Dynamit direct removal logic ---
                 if (targetItem.card.type === 'Dynamit' && newFirstDynamitePlayerId === targetPlayerId) {
-                    if (!hasActiveDynamite(newTargetPlayer)) {
+                    if (!hasActiveDynamiteInDisplay(newDisplay)) {
                         newFirstDynamitePlayerId = undefined;
                     }
                 }
@@ -678,7 +667,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
         case 'TRIGGER_BUST': {
             let ns = { ...state };
-            let p = { ...ns.players[ns.currentPlayerIndex] };
+            const bustPlayerId = state.pendingBustPlayerId ?? state.players[state.currentPlayerIndex].id;
+            let p = { ...ns.players.find(pl => pl.id === bustPlayerId)! };
 
             if (p.display.length === 0) return { ...ns, phase: 'playing' as GamePhase };
 
@@ -722,13 +712,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
         case 'CLEANUP_BUST': {
             let ns = { ...state };
-            let p = { ...ns.players[ns.currentPlayerIndex] };
+            const bustPlayerId = state.pendingBustPlayerId ?? state.players[state.currentPlayerIndex].id;
+            const bustedIsCurrentPlayer = state.players[state.currentPlayerIndex].id === bustPlayerId;
+            let p = { ...ns.players.find(pl => pl.id === bustPlayerId)! };
 
             const armorIndex = p.display.findIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Schrottrüstung');
             const isDynamiteBust = p.display.some(i => i.isBusted && i.card.type === 'Dynamit');
 
             if (p.status === 'BUSTED') {
-                // Normal bust, turn ends
+                ns.pendingBustCard = undefined;
+                ns.pendingBustPlayerId = undefined;
                 return advanceTurn(ns);
             }
 
@@ -740,7 +733,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 } else {
                     ns = logEvent(ns, `BUMM! Alles weg. Neustart bei Null!`);
                     p.display = [];
-                    // Round ends for this player if they bust without armor
+                    ns.players = ns.players.map(pl => pl.id === p.id ? p : pl);
+                    ns.pendingBustCard = undefined;
+                    ns.pendingBustPlayerId = undefined;
                     return advanceTurn(ns);
                 }
             } else {
@@ -750,15 +745,28 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             }
 
             ns.players = ns.players.map(pl => pl.id === p.id ? p : pl);
-            ns.phase = 'playing' as GamePhase;
             ns.pendingBustCard = undefined;
-            return ns;
+            ns.pendingBustPlayerId = undefined;
+
+            if (bustedIsCurrentPlayer) {
+                ns.phase = 'playing' as GamePhase;
+                return ns;
+            }
+
+            return advanceTurn(ns);
         }
 
         case 'TRIGGER_FLUCH_ANIM': {
             const p = state.players[state.currentPlayerIndex];
             const existingFluchIdx = p.display.findIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Des Meisters Fluch');
-            const secondFluchIdx = p.display.findLastIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Des Meisters Fluch');
+            let secondFluchIdx = -1;
+            for (let i = p.display.length - 1; i >= 0; i--) {
+                const item = p.display[i];
+                if (!item.cagedBy && !item.isSecret && item.card.type === 'Des Meisters Fluch') {
+                    secondFluchIdx = i;
+                    break;
+                }
+            }
 
             let newDisplay = [...p.display];
             if (existingFluchIdx !== -1) newDisplay[existingFluchIdx] = { ...newDisplay[existingFluchIdx], isFluchCanceled: true };

@@ -62,7 +62,7 @@ export type Player = {
 };
 
 export type GameState = {
-  version: 'v2_0';
+  version: 'v3_0';
   players: Player[];
   currentPlayerIndex: number;
   deck: Card[];
@@ -73,6 +73,7 @@ export type GameState = {
   pendingCards: Card[];
   pendingActionCard?: Card;
   pendingBustCard?: Card;
+  pendingBustPlayerId?: number;
   firstDynamitePlayerId?: number;
   eventLog: { id: string, msg: string }[];
 };
