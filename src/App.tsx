@@ -127,6 +127,33 @@ export default function App() {
     }
   };
 
+  const localVersionOptions = [
+    {
+      id: 'v1_0',
+      label: 'Basis',
+      active: 'border-amber-400 bg-amber-500/20 text-amber-200 shadow-[0_0_0_1px_rgba(251,191,36,0.4),0_10px_25px_rgba(245,158,11,0.15)]',
+      idle: 'border-amber-900/60 bg-amber-950/40 text-amber-300/80 hover:border-amber-500/60 hover:bg-amber-900/40'
+    },
+    {
+      id: 'v1_1',
+      label: 'Push It',
+      active: 'border-fuchsia-400 bg-fuchsia-500/20 text-fuchsia-200 shadow-[0_0_0_1px_rgba(232,121,249,0.4),0_10px_25px_rgba(192,38,211,0.16)]',
+      idle: 'border-fuchsia-900/60 bg-fuchsia-950/35 text-fuchsia-300/80 hover:border-fuchsia-500/60 hover:bg-fuchsia-900/35'
+    },
+    {
+      id: 'v2_0',
+      label: 'Captain Flip',
+      active: 'border-sky-400 bg-sky-500/20 text-sky-100 shadow-[0_0_0_1px_rgba(56,189,248,0.4),0_10px_25px_rgba(14,165,233,0.16)]',
+      idle: 'border-sky-900/60 bg-sky-950/35 text-sky-300/80 hover:border-sky-500/60 hover:bg-sky-900/35'
+    },
+    {
+      id: 'v3_0',
+      label: 'Captain Til',
+      active: 'border-emerald-400 bg-emerald-500/20 text-emerald-200 shadow-[0_0_0_1px_rgba(52,211,153,0.4),0_10px_25px_rgba(16,185,129,0.16)]',
+      idle: 'border-emerald-900/60 bg-emerald-950/35 text-emerald-300/80 hover:border-emerald-500/60 hover:bg-emerald-900/35'
+    }
+  ] as const;
+
   if (!isGameStarted) {
     return (
       <div className="min-h-screen bg-slate-950 text-white p-8 flex flex-col items-center justify-center font-sans tracking-wide">
@@ -153,16 +180,11 @@ export default function App() {
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Version auswählen</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'v1_0', label: 'Basis' },
-                    { id: 'v1_1', label: 'Push It' },
-                    { id: 'v2_0', label: 'Captain Flip' },
-                    { id: 'v3_0', label: 'Captain Til' }
-                  ].map(v => (
+                  {localVersionOptions.map(v => (
                     <button
                       key={v.id}
                       onClick={() => setLocalVersion(v.id)}
-                      className={`py-3 text-xs md:text-sm font-bold rounded-xl border transition-all ${localVersion === v.id ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:bg-slate-700'}`}
+                      className={`py-3 text-xs md:text-sm font-bold rounded-xl border transition-all ${localVersion === v.id ? v.active : v.idle}`}
                     >
                       {v.label}
                     </button>

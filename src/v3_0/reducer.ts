@@ -34,9 +34,14 @@ function logEvent(state: GameState, msg: string): GameState {
     return { ...state, eventLog: [...state.eventLog, { id: Math.random().toString(), msg }] };
 }
 
+function bold(text: string): string {
+    return `**${text}**`;
+}
+
 function getShortName(type: string): string {
     if (type === 'Von hinten geschubst') return 'Geschubst';
     if (type === 'Des Meisters Fluch') return 'Fluch';
+    if (type === 'Hinterhalt!') return 'Hinterhalt';
     return type;
 }
 
@@ -76,7 +81,7 @@ function advanceTurn(state: GameState): GameState {
 
     const activeCount = ns.players.filter(p => p.status === 'PLAYING').length;
     if (activeCount === 0) {
-        ns = logEvent(ns, `Alle Spieler sind fertig. Die Wertereihe beginnt...`);
+        ns = logEvent(ns, `Runde ${ns.round} ist vorbei und wird gewertet.`);
         return scoreRound(ns);
     }
 
@@ -126,7 +131,7 @@ function handleBust(state: GameState, card: Card, bustPlayerId?: number): GameSt
     newState.phase = 'bust_wait' as any;
     newState.pendingBustCard = card;
     newState.pendingBustPlayerId = targetPlayerId;
-    newState = logEvent(newState, `${newPlayer.name} zieht ${card.type} und erlebt einen Bust-Moment!`);
+    newState = logEvent(newState, `${bold(newPlayer.name)} explodiert!`);
 
     newState.players = newState.players.map(pl => pl.id === newPlayer.id ? newPlayer : pl);
 
@@ -145,7 +150,7 @@ function applyFluchCancel(state: GameState, card: Card): GameState {
 
     let newState = { ...state };
     newState.players = newState.players.map(pl => pl.id === p.id ? newPlayer : pl);
-    newState = logEvent(newState, `${p.name} zieht einen zweiten Fluch. Beide verflüchtigen sich!`);
+    newState = logEvent(newState, `${bold(p.name)} zieht einen zweiten ${bold('Fluch')}. Beide verflüchtigen sich!`);
 
     return { ...newState, phase: 'fluch_cancel_wait' as any };
 }
@@ -164,23 +169,31 @@ function addToDisplay(state: GameState, card: Card, opts?: { isSecret?: boolean 
     };
 }
 
-export function playCard(state: GameState, card: Card): GameState {
+export function playCard(state: GameState, card: Card, opts?: { suppressDrawLog?: boolean }): GameState {
     if (!card) return advanceTurn(state);
     const p = state.players[state.currentPlayerIndex];
-    let s = logEvent(state, `${p.name} zieht und spielt: ${getShortName(card.type)}`);
+
+    if (card.type === 'Des Meisters Fluch') {
+        const hasUncagedFluch = p.display.some(i => !i.cagedBy && !i.isSecret && i.card.type === 'Des Meisters Fluch');
+        if (hasUncagedFluch) {
+            return applyFluchCancel(state, card);
+        }
+    }
+
+    const logCardName = card.type === 'Von hinten geschubst' ? 'Geschubst!' : getShortName(card.type);
+    let s = opts?.suppressDrawLog ? state : logEvent(state, `${bold(p.name)} zieht ${bold(logCardName)}`);
 
     // --- Dynamit chain mechanic ---
     if (card.type === 'Dynamit') {
         if (s.firstDynamitePlayerId === undefined) {
             // First Dynamit: just mark this player and continue normally
             let s2 = addToDisplay(s, card);
-            s2 = logEvent(s2, `${p.name} hält jetzt das erste Dynamit – Vorsicht!`);
+            s2 = logEvent(s2, `${bold(p.name)} hält jetzt das erste ${bold('Dynamit')} – Vorsicht!`);
             s2 = { ...s2, firstDynamitePlayerId: p.id };
             return advanceTurn(s2);
         } else {
             // Second Dynamit: bust the player who holds the first one
             const firstPlayer = s.players.find(pl => pl.id === s.firstDynamitePlayerId)!;
-            s = logEvent(s, `${p.name} zieht das zweite Dynamit – ${firstPlayer.name} fliegt in die Luft!`);
 
             // Add the new dynamit card to current player's display first
             let s2 = addToDisplay(s, card);
@@ -199,13 +212,6 @@ export function playCard(state: GameState, card: Card): GameState {
         return handleBust(s, card);
     }
 
-    if (card.type === 'Des Meisters Fluch') {
-        const hasUncagedFluch = p.display.some(i => !i.cagedBy && !i.isSecret && i.card.type === 'Des Meisters Fluch');
-        if (hasUncagedFluch) {
-            return applyFluchCancel(s, card);
-        }
-    }
-
     if (card.type === 'Käfig') {
         if (hasValidCageTargets(s)) {
             return { ...s, phase: 'cage_decision', pendingActionCard: card };
@@ -216,9 +222,9 @@ export function playCard(state: GameState, card: Card): GameState {
 
     if (card.type === 'Hinterhalt!') {
         let s2 = addToDisplay(s, card);
-        // In V3 the card can hit any opponent card; if a card is caged, the cage itself is the target.
+        // Like V2: any playing player's card can be targeted, including your own, except the Hinterhalt card itself.
         const anyValidTargets = s2.players.some(pl =>
-            pl.id !== p.id && pl.display.some(item => item.card.id !== card.id)
+            pl.status === 'PLAYING' && pl.display.some(item => item.card.id !== card.id)
         );
 
         if (anyValidTargets) {
@@ -230,15 +236,30 @@ export function playCard(state: GameState, card: Card): GameState {
     }
 
     if (card.type === 'Lugloch') {
-        let s2 = addToDisplay(s, card);
-        s2 = logEvent(s2, `${p.name} spielt ein Lugloch – beim nächsten Zug darf er einen Blick riskieren!`);
-        return advanceTurn(s2);
+        const luglochItem: DisplayItem = {
+            id: Math.random().toString(),
+            card,
+            luglochUsed: true
+        };
+        const newPlayer = { ...p, display: [...p.display, luglochItem] };
+        let s2: GameState = {
+            ...s,
+            players: s.players.map(pl => pl.id === p.id ? newPlayer : pl),
+            phase: 'lugloch_decision'
+        };
+        const { card: peekedCard, newState: s3 } = getTopCard(s2);
+        s3.pendingCards = peekedCard ? [peekedCard] : [];
+        return s3;
     }
 
     if (card.type === 'Langfinger') {
         let s2 = addToDisplay(s, card);
-        const opponentsHaveVisibleCards = s2.players.some(pl => pl.id !== p.id && pl.status === 'PLAYING' && pl.display.some(item => !item.cagedBy && !item.isSecret));
-        if (opponentsHaveVisibleCards) {
+        const opponentsHaveStealableCards = s2.players.some(pl =>
+            pl.id !== p.id &&
+            pl.status === 'PLAYING' &&
+            pl.display.some(item => !item.cagedBy)
+        );
+        if (opponentsHaveStealableCards) {
             return { ...s2, phase: 'langfinger_decision', pendingActionCard: card };
         }
         return advanceTurn(s2);
@@ -331,8 +352,8 @@ function startRound(state: GameState): GameState {
         eventLog: [] // Clear log per round
     };
 
-    ns = logEvent(ns, `--- RUNDE ${ns.round} STARTET ---`);
-    ns = logEvent(ns, `${ns.players[newStart].name} beginnt die Runde.`);
+    ns = logEvent(ns, `RUNDE ${ns.round}`);
+    ns = logEvent(ns, `${bold(ns.players[newStart].name)} fängt an.`);
 
     return ns;
 }
@@ -343,7 +364,7 @@ export type GameAction =
     | { type: 'STOP' }
     | { type: 'CAGE_TARGET'; payload: { targetId: string } }
     | { type: 'HINTERHALT_TARGET'; payload: { targetPlayerId: number, targetId: string, isCageTarget?: boolean } }
-    | { type: 'LUGLOCH_PLAY'; payload?: { index: number } }
+    | { type: 'LUGLOCH_DISCARD' }
     | { type: 'LUGLOCH_RETURN' }
     | { type: 'ELIXIR_CHOOSE'; payload: { index: number } }
     | { type: 'LANGFINGER_STEAL'; payload: { targetPlayerId: number, targetId: string } }
@@ -382,23 +403,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         case 'DRAW_CARD': {
             const p = state.players[state.currentPlayerIndex];
 
-            // Check for unused Lugloch or Geheimfach (triggers at start of next turn)
+            // Check for unused Geheimfach (triggers at start of next turn)
             if (p.display.length > 0 && state.phase === 'playing') {
                 const rightmost = p.display[p.display.length - 1];
-
-                if (rightmost.card.type === 'Lugloch' && !rightmost.cagedBy && !rightmost.isSecret && !rightmost.luglochUsed) {
-                    // Mark the lugloch as used
-                    const newDisplay = p.display.map((i, idx) => idx === p.display.length - 1 ? { ...i, luglochUsed: true } : i);
-                    const newPlayer = { ...p, display: newDisplay };
-                    let ns = {
-                        ...state,
-                        players: state.players.map(pl => pl.id === p.id ? newPlayer : pl),
-                        phase: 'lugloch_decision' as GamePhase
-                    };
-                    const { cards: next3Cards, newState: s1 } = getTopCards(ns, 3);
-                    s1.pendingCards = next3Cards;
-                    return logEvent(s1, `${p.name} nutzt sein Lugloch und schaut die nächsten 3 Karten an...`);
-                }
 
                 if (rightmost.card.type === 'Geheimfach' && !rightmost.cagedBy && !rightmost.isSecret && !rightmost.geheimfachUsed) {
                     // Mark as used and trigger secret card draw
@@ -411,7 +418,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                     // We directly call the draw secret logic (simplified version of DRAW_SECRET_CARD action)
                     const { card: secretCard, newState: s1 } = getTopCard(ns);
                     let finalS = addToDisplay(s1, secretCard, { isSecret: true });
-                    finalS = logEvent(finalS, `${p.name} nutzt sein Geheimfach und zieht eine Karte verdeckt.`);
+                    finalS = logEvent(finalS, `${bold(p.name)} legt eine verdeckte Karte in sein ${bold('Geheimfach')}`);
                     return advanceTurn(finalS);
                 }
             }
@@ -432,7 +439,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                     const { card: c2, newState: s2 } = getTopCard(s1);
                     let finalState = s2;
                     finalState.pendingCards = [c1, c2];
-                    finalState = logEvent(finalState, `${p.name} nutzt sein Auswahlelixir und zieht 2 Karten!`);
+                    finalState = logEvent(finalState, `${bold(p.name)} trinkt ${bold('Auswahlelixir')} und darf aus 2 Karten wählen`);
                     return finalState;
                 }
             }
@@ -449,7 +456,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             const p = state.players[state.currentPlayerIndex];
             const newPlayers = state.players.map(pl => pl.id === p.id ? { ...pl, status: 'STOPPED' as const } : pl);
             let ns = { ...state, players: newPlayers };
-            ns = logEvent(ns, `${p.name} sagt "Hör auf!" und beendet seinen Zug.`);
+            ns = logEvent(ns, `${bold(p.name)} sagt "Hör auf!" und beendet seinen Zug.`);
             return advanceTurn(ns);
         }
 
@@ -471,30 +478,29 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                     ns = { ...ns, firstDynamitePlayerId: undefined };
                 }
             }
-            ns = logEvent(ns, `${p.name} sperrt eine Karte in den Käfig.`);
+            ns = logEvent(ns, `${bold(p.name)} sperrt ${bold(getShortName(targetItem.card.type))} in den ${bold('Käfig')}.`);
             return advanceTurn(ns);
         }
 
-        case 'LUGLOCH_PLAY': {
-            const index = action.payload?.index ?? 0;
-            const cardToPlay = state.pendingCards[index];
-            const remainingCards = state.pendingCards.filter((_, i) => i !== index);
+        case 'LUGLOCH_DISCARD': {
+            const [cardToDiscard] = state.pendingCards;
             let ns = {
                 ...state,
                 pendingCards: [],
-                deck: [...remainingCards, ...state.deck] // Put unchosen back on top
+                discardPile: cardToDiscard ? [...state.discardPile, cardToDiscard] : state.discardPile
             };
-            ns = logEvent(ns, `Lugloch: Eine Karte wurde gewählt und wird gespielt.`);
-            return playCard(ns, cardToPlay);
+            ns = logEvent(ns, `${bold('Lugloch')}: Karten wurde abgelegt`);
+            return advanceTurn(ns);
         }
 
         case 'LUGLOCH_RETURN': {
+            const [peekedCard] = state.pendingCards;
             let ns = {
                 ...state,
-                deck: [...state.pendingCards, ...state.deck],
+                deck: peekedCard ? [peekedCard, ...state.deck] : state.deck,
                 pendingCards: []
             };
-            ns = logEvent(ns, `Lugloch: Alle Karten wurden zurückgelegt.`);
+            ns = logEvent(ns, `${bold('Lugloch')}: Die Karte wurde zurückgelegt`);
             return advanceTurn(ns);
         }
 
@@ -507,7 +513,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 pendingCards: [],
                 discardPile: [...state.discardPile, discardedCard]
             };
-            ns = logEvent(ns, `Braukessel: Eine Karte wurde gewählt.`);
             return playCard(ns, chosenCard);
         }
 
@@ -541,17 +546,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 }
             }
 
-            ns = logEvent(ns, `${state.players[state.currentPlayerIndex].name} stiehlt ${getShortName(stolenItem.card.type)} von ${victim.name}!`);
+            ns = logEvent(ns, `${bold(state.players[state.currentPlayerIndex].name)} stiehlt ${bold(getShortName(stolenItem.card.type))} von ${bold(victim.name)}!`);
 
-            // Add the card to current player (triggers logic)
-            return playCard(ns, stolenItem.card);
+            // Add the card to current player without adding a second "zieht ..." log entry
+            return playCard(ns, stolenItem.card, { suppressDrawLog: true });
         }
 
         case 'DRAW_SECRET_CARD': {
             let ns = { ...state };
             const { card: secretCard, newState: s1 } = getTopCard(ns);
             ns = addToDisplay(s1, secretCard, { isSecret: true });
-            ns = logEvent(ns, `${state.players[state.currentPlayerIndex].name} zieht den Geheimfach-Inhalt verdeckt.`);
+            ns = logEvent(ns, `${bold(state.players[state.currentPlayerIndex].name)} zieht den ${bold('Geheimfach')}-Inhalt verdeckt.`);
             return advanceTurn(ns);
         }
 
@@ -645,7 +650,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 firstDynamitePlayerId: newFirstDynamitePlayerId
             };
 
-            ns = logEvent(ns, `${state.players[state.currentPlayerIndex].name} wirft ${getShortName(discardedCard.type)} von ${targetPlayer.name} ab!`);
+            ns = logEvent(ns, `${bold(state.players[state.currentPlayerIndex].name)} wirft ${bold(getShortName(discardedCard.type))} von ${bold(targetPlayer.name)} ab!`);
             return ns;
         }
 
@@ -702,7 +707,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                     p.display = p.display.map(i => ({ ...i, isBusted: true }));
                     p.status = 'BUSTED';
                     ns.phase = 'bust_anim' as GamePhase;
-                    ns = logEvent(ns, `BUMM! Komplett gebustet!`);
                 }
             }
 
@@ -713,7 +717,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         case 'CLEANUP_BUST': {
             let ns = { ...state };
             const bustPlayerId = state.pendingBustPlayerId ?? state.players[state.currentPlayerIndex].id;
-            const bustedIsCurrentPlayer = state.players[state.currentPlayerIndex].id === bustPlayerId;
             let p = { ...ns.players.find(pl => pl.id === bustPlayerId)! };
 
             const armorIndex = p.display.findIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Schrottrüstung');
@@ -747,12 +750,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             ns.players = ns.players.map(pl => pl.id === p.id ? p : pl);
             ns.pendingBustCard = undefined;
             ns.pendingBustPlayerId = undefined;
-
-            if (bustedIsCurrentPlayer) {
-                ns.phase = 'playing' as GamePhase;
-                return ns;
-            }
-
             return advanceTurn(ns);
         }
 

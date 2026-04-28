@@ -41,7 +41,7 @@ const imageMap: Record<string, string> = {
   'Dynamit': '/images/dynamit-ohne-wert.png',
   'Auswahlelixir': '/images/auswahlelixir-ohne-wert.png',
   'Langfinger': '/images/langfinger-ohne-wert.png',
-  'Käfig': '/images/kaefig-ohne-wert.png'
+  'Käfig': '/images/kaefig-ohne-zwei-werte.png'
 };
 
 const CardView = ({ card, isSecret, onClick, selectable }: { card: Card, isSecret?: boolean, onClick?: () => void, selectable?: boolean }) => {
@@ -68,6 +68,7 @@ const CardView = ({ card, isSecret, onClick, selectable }: { card: Card, isSecre
 
   if (imageMap[card.type]) {
     const imgSrc = imageMap[card.type];
+    const showCageCount = card.type === 'Käfig';
     return (
       <div className="group relative w-40 md:w-48 aspect-[1050/1498] inline-block">
         <div
@@ -80,6 +81,13 @@ const CardView = ({ card, isSecret, onClick, selectable }: { card: Card, isSecre
               {card.value}
             </span>
           </div>
+          {showCageCount && (
+            <div className="absolute bottom-[8.5%] left-[2.5%] w-[24%] aspect-square flex items-center justify-center z-10">
+              <span className="text-base md:text-lg font-black text-[#d6b014] drop-shadow-[0_2px_2px_rgba(0,0,0,0.9)] translate-x-[2px] -translate-y-[35px]">
+                10x
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -167,6 +175,16 @@ const BustParticles = () => {
   );
 };
 
+function renderLogMessage(msg: string) {
+  const parts = msg.split(/(\*\*.*?\*\*)/g).filter(Boolean);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={idx} className="font-black text-inherit">{part.slice(2, -2)}</strong>;
+    }
+    return <React.Fragment key={idx}>{part}</React.Fragment>;
+  });
+}
+
 export default function Game({
   currentVersion,
   onSwitchVersion,
@@ -241,7 +259,7 @@ export default function Game({
       '/images/fluch-ohne-wert.png',
       '/images/dynamit-ohne-wert.png',
       '/images/auswahlelixir-ohne-wert.png',
-      '/images/kaefig-ohne-wert.png',
+      '/images/kaefig-ohne-zwei-werte.png',
       '/images/rueckseite.png'
     ];
     imagesToPreload.forEach(src => {
@@ -251,6 +269,8 @@ export default function Game({
   }, []);
 
   const isHinterhaltActive = state.phase === 'hinterhalt_decision';
+  const isLangfingerActive = state.phase === 'langfinger_decision';
+  const isElixirActive = state.phase === 'elixir_decision';
 
   useEffect(() => {
     if (isHinterhaltActive) {
@@ -264,6 +284,32 @@ export default function Game({
       };
     }
   }, [isHinterhaltActive]);
+
+  useEffect(() => {
+    if (isLangfingerActive) {
+      const style = document.createElement('style');
+      style.id = 'langfinger-cursor';
+      style.innerHTML = `* { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g transform="rotate(-18 16 16)"><path d="M9 27c0-2 1-4 2-5l2-2V8.5c0-1.1.9-2 2-2s2 .9 2 2V16h1V6.5c0-1.1.9-2 2-2s2 .9 2 2V16h1v-7c0-1.1.9-2 2-2s2 .9 2 2v11c0 1.8-.7 3.5-2 4.8L24.5 28H12c-1.7 0-3-1.3-3-3Z" fill="%2311100b"/><path d="M13 28h11.5l2.5-3.2c1.3-1.3 2-3 2-4.8V9c0-1.1-.9-2-2-2s-2 .9-2 2v7h-1V6.5c0-1.1-.9-2-2-2s-2 .9-2 2V16h-1V8.5c0-1.1-.9-2-2-2s-2 .9-2 2V20l-2 2c-1 1-1.8 3-1.8 4.2" fill="%23d6b68a"/><path d="M20.5 3.5 22 1l1.5 2.5L26 5l-2.5 1.5L22 9l-1.5-2.5L18 5Z" fill="%23f4d03f" stroke="%238a6d1d" stroke-width="0.6"/><path d="M13 28h11.5l2.5-3.2c1.3-1.3 2-3 2-4.8V9c0-1.1-.9-2-2-2s-2 .9-2 2v7h-1V6.5c0-1.1-.9-2-2-2s-2 .9-2 2V16h-1V8.5c0-1.1-.9-2-2-2s-2 .9-2 2V20l-2 2c-1 1-1.8 3-1.8 4.2" fill="none" stroke="%2345351c" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/></g></svg>') 6 4, pointer !important; }`;
+      document.head.appendChild(style);
+      return () => {
+        const el = document.getElementById('langfinger-cursor');
+        if (el) el.remove();
+      };
+    }
+  }, [isLangfingerActive]);
+
+  useEffect(() => {
+    if (isElixirActive) {
+      const style = document.createElement('style');
+      style.id = 'elixir-cursor';
+      style.innerHTML = `* { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g transform="rotate(12 16 16)"><path d="M12 4h8v4.2l3.8 5.4c2.4 3.5 2.8 7.6 1 10.8C23 27.4 19.8 29 16 29s-7-1.6-8.8-4.6c-1.8-3.2-1.4-7.3 1-10.8L12 8.2Z" fill="%236b21a8"/><path d="M12 4h8v4.2l3.8 5.4c2.4 3.5 2.8 7.6 1 10.8C23 27.4 19.8 29 16 29s-7-1.6-8.8-4.6c-1.8-3.2-1.4-7.3 1-10.8L12 8.2Z" fill="none" stroke="%232e1065" stroke-width="1.4" stroke-linejoin="round"/><rect x="11" y="2" width="10" height="3" rx="1" fill="%23d6b014" stroke="%237c5c10" stroke-width="0.8"/><path d="M10.5 16.5c1.4-1.1 3.1-1.7 4.8-1.7 1.6 0 2.5.5 3.7.9 1.1.4 2.2.8 3.7.8.5 0 1-.1 1.5-.2-.1-.9-.5-1.9-1.1-2.8L20 8.2V5h-8v3.2l-3.1 4.4c-.8 1.2-1.2 2.5-1.3 3.9.9.1 1.9-.2 2.9-1Z" fill="%23c084fc" opacity="0.95"/><circle cx="14" cy="19" r="1.4" fill="%23fef3c7"/><circle cx="18.2" cy="22.3" r="1.2" fill="%23fde68a"/><circle cx="16.2" cy="11.4" r="1" fill="%23fef08a"/></g></svg>') 6 2, pointer !important; }`;
+      document.head.appendChild(style);
+      return () => {
+        const el = document.getElementById('elixir-cursor');
+        if (el) el.remove();
+      };
+    }
+  }, [isElixirActive]);
 
   const handleStartVersion = (v: string) => {
     const names = playerNames.filter(n => n.trim() !== '');
@@ -381,8 +427,10 @@ export default function Game({
       </div>
 
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 flex flex-wrap justify-center gap-2 mb-4">
-        {state.players.map(p => (
-          <div key={p.id} className={`relative flex-1 min-w-[350px] 2xl:min-w-[500px] p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${p.id === currentPlayer?.id ? 'border-[#0f5132] bg-[#062e1f]/30 shadow-[0_0_20px_rgba(15,81,50,0.3)]' : 'border-slate-800 bg-slate-900/50'} ${p.status === 'BUSTED' ? 'opacity-50' : ''}`}>
+        {state.players.map(p => {
+          const isActivePlayer = p.id === currentPlayer?.id;
+          return (
+          <div key={p.id} className={`relative flex-1 min-w-[350px] 2xl:min-w-[500px] p-3 md:p-4 rounded-xl border-2 transition-all duration-300 ${isActivePlayer ? 'border-emerald-300 bg-gradient-to-br from-[#0b3a29]/80 via-[#062e1f]/70 to-[#041811]/80 shadow-[0_0_0_2px_rgba(110,231,183,0.35),0_0_35px_rgba(16,185,129,0.28)] -translate-y-1' : 'border-slate-800 bg-slate-900/50'} ${p.status === 'BUSTED' ? 'opacity-50' : ''}`}>
             {state.phase === 'bust_wait' && p.id === (state.pendingBustPlayerId ?? currentPlayer?.id) && (
               <BustCountdown onComplete={() => {
                 dispatch({ type: 'TRIGGER_BUST' });
@@ -390,7 +438,7 @@ export default function Game({
             )}
             <div className="flex justify-between items-center mb-2">
               <div>
-                <h3 className="font-bold text-lg flex items-center gap-2">
+                <h3 className={`font-bold text-lg flex items-center gap-2 ${isActivePlayer ? 'text-emerald-100' : ''}`}>
                   {p.name}
                   {p.id === state.firstDynamitePlayerId && (
                     <span
@@ -401,8 +449,7 @@ export default function Game({
                   {(() => {
                     if (p.display.length === 0) return null;
                     const last = p.display[p.display.length - 1];
-                    const isActiveChoiceCard = (last.card.type === 'Lugloch' && !last.luglochUsed) ||
-                      (last.card.type === 'Auswahlelixir' && !last.elixirUsed) ||
+                    const isActiveChoiceCard = (last.card.type === 'Auswahlelixir' && !last.elixirUsed) ||
                       (last.card.type === 'Geheimfach' && !last.geheimfachUsed);
                     if (isActiveChoiceCard && !last.cagedBy && !last.isSecret && !last.isBusted) {
                       return (
@@ -415,7 +462,7 @@ export default function Game({
                     return null;
                   })()}
                 </h3>
-                <span className="text-xs text-slate-400">{p.status}</span>
+                <span className={`text-xs ${isActivePlayer ? 'text-emerald-200/80' : 'text-slate-400'}`}>{p.status}</span>
               </div>
               <div className="flex gap-6 text-center">
                 <div className="flex flex-col items-center justify-end">
@@ -436,10 +483,10 @@ export default function Game({
 
             <div className={`flex flex-wrap overflow-y-visible pb-4 pt-2 px-2 items-start transition-all duration-700 ${p.status === 'STOPPED' ? 'grayscale-[60%] opacity-80' : ''}`} style={{ gap: '0.5rem', maxWidth: 'min(100%, calc(5 * 10rem + 4 * 0.5rem))' }}>
               {p.display.map((item, idx) => {
-                // Do not allow targeting yourself with Hinterhalt or Langfinger
-                const isHinterhaltTargetableBase = state.phase === 'hinterhalt_decision' && p.id !== currentPlayer?.id && !item.isSecret && !item.cagedBy;
-                const isHinterhaltTargetableCage = state.phase === 'hinterhalt_decision' && p.id !== currentPlayer?.id && !!item.cagedBy;
-                const isLangfingerTargetable = state.phase === 'langfinger_decision' && p.id !== currentPlayer?.id && !item.isSecret && !item.cagedBy;
+                const canTargetWithHinterhalt = p.status === 'PLAYING';
+                const isHinterhaltTargetableBase = state.phase === 'hinterhalt_decision' && canTargetWithHinterhalt && !item.isSecret && !item.cagedBy && item.card.id !== state.pendingActionCard?.id;
+                const isHinterhaltTargetableCage = state.phase === 'hinterhalt_decision' && canTargetWithHinterhalt && !!item.cagedBy && item.cagedBy.id !== state.pendingActionCard?.id;
+                const isLangfingerTargetable = state.phase === 'langfinger_decision' && p.id !== currentPlayer?.id && !item.cagedBy;
                 const isCageTargetable = state.phase === 'cage_decision' && p.id === currentPlayer?.id && !item.cagedBy && (item.isSecret || item.card.type !== 'Käfig');
                 const selectable = isCageTargetable || isHinterhaltTargetableBase || isHinterhaltTargetableCage || isLangfingerTargetable;
 
@@ -614,14 +661,14 @@ export default function Game({
 
             </div>
           </div>
-        ))}
+        )})}
       </div>
 
       <div className="relative z-10 w-full max-w-full px-2 lg:px-4 mb-20">
         <div className="bg-black border border-[#0f5132] rounded-2xl p-3 h-44 md:h-56 overflow-y-auto flex flex-col-reverse shadow-inner">
           {state.eventLog.slice().reverse().map((log, i) => (
             <div key={log.id} className={`text-[11px] md:text-[13px] leading-snug py-0.5 ${i === 0 ? 'text-amber-300 font-bold' : 'text-stone-400'}`}>
-              • {log.msg}
+              • {renderLogMessage(log.msg)}
             </div>
           ))}
           {state.eventLog.length === 0 && <div className="text-slate-600 text-xs italic">Spielprotokoll...</div>}
@@ -653,9 +700,9 @@ export default function Game({
               <p>Dynamit: Das erste Dynamit markiert einen Spieler, das zweite lässt den ersten Spieler busten.</p>
               <p>Mit STOP beendest du deinen Zug freiwillig. Nur gestoppte Spieler sichern ihre Rundenauslage fuer die Wertung; komplett gebustete Spieler bekommen in der Runde 0 Punkte.</p>
               <p>Schrottruestung federt einen Bust ab: Die Ruestung und alles rechts davon gehen verloren, der vordere Teil der Auslage bleibt erhalten. Ohne Ruestung ist bei einem Bust die ganze offene Auslage weg.</p>
-              <p>Lugloch aktiviert sich beim naechsten Zug und zeigt dir die naechsten drei Karten. Du darfst genau eine davon spielen oder alle wieder oben aufs Deck zuruecklegen.</p>
+              <p>Lugloch wird sofort ausgeloest: Du schaust die naechste Karte an und entscheidest, ob sie auf die Ablage geht oder oben auf den Stapel zurueckkommt.</p>
               <p>Von hinten geschubst zwingt dich sofort zu einem weiteren Zug. Du darfst in diesem Moment nicht einfach stoppen, sondern musst direkt erneut ziehen.</p>
-              <p>Langfinger stiehlt eine sichtbare, nicht eingesperrte Karte eines Mitspielers. Eingesperrte und geheime Karten sind kein gueltiges Ziel.</p>
+              <p>Langfinger stiehlt eine nicht eingesperrte Karte eines Mitspielers. Auch verdeckte Geheimfach-Karten koennen gestohlen werden.</p>
               <p>Hinterhalt wirft eine Karte eines Gegners ab. Ist die Zielkarte eingesperrt, triffst du stattdessen den Kaefig; die eingeschlossene Karte wird dadurch wieder frei und kann sofort neue Bust-Ketten ausloesen.</p>
               <p>Dynamit arbeitet als Staffelstab: Das erste offene Dynamit markiert seinen Besitzer. Sobald ein anderes offenes Dynamit ins Spiel kommt, bustet der bisher markierte Spieler und das neue Dynamit markiert ab dann seinen neuen Besitzer.</p>
               <p>Am Rundenende werden alle nicht gebusteten Kartenwerte addiert, inklusive offener Kaefige und zuvor geheimer Karten. Das Spiel endet, sobald ein Spieler das Ziel von 50 Punkten erreicht oder ueberschreitet.</p>
@@ -679,7 +726,7 @@ export default function Game({
               <div className="flex gap-4">
                 <button
                   onClick={() => dispatch({ type: 'DRAW_CARD' })}
-                  className="flex-1 py-4 bg-gradient-to-b from-[#b91c1c] to-[#7f1d1d] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(127,29,29),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
+                  className="flex-1 py-4 bg-gradient-to-b from-[#0f5132] to-[#065f46] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(6,95,70),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider"
                 >
                   {hasElixir ? 'Karten ziehen' : 'Karte ziehen'}
                 </button>
@@ -708,25 +755,27 @@ export default function Game({
           {state.phase === 'geschubst_decision' && currentPlayer && currentPlayer.status === 'PLAYING' && (
             <div className="flex flex-col items-center">
               <span className="text-orange-400 font-bold mb-2 uppercase tracking-widest text-sm">Von hinten geschubst!</span>
-              <p className="text-sm text-slate-400 mb-4">Du wurdest geschubst und musst sofort weiterziehen!</p>
+              <p className="text-sm text-slate-400 mb-4">{currentPlayer.name} wurde geschubst und musst noch eine Karte ziehen!</p>
               <div className="flex gap-4 w-full">
-                <button onClick={() => dispatch({ type: 'DRAW_CARD' })} className="flex-1 py-4 bg-gradient-to-b from-[#8d4f26] to-[#d68d4a] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(114,59,17),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider">Karte ziehen</button>
+                <button onClick={() => dispatch({ type: 'DRAW_CARD' })} className="flex-1 py-4 bg-gradient-to-b from-[#0f5132] to-[#065f46] text-white font-black rounded-2xl text-xl shadow-[0_5px_0_rgb(6,95,70),0_10px_20px_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] hover:brightness-110 transition-[filter,shadow] uppercase tracking-wider">Noch eine Karte!</button>
               </div>
             </div>
           )}
 
           {state.phase === 'lugloch_decision' && state.pendingCards.length > 0 && (
             <div className="flex flex-col items-center">
-              <span className="text-yellow-400 mb-4 font-black uppercase tracking-widest text-sm drop-shadow-md">Kristallkugel: Wähle eine Karte zum Spielen</span>
+              <span className="text-yellow-400 mb-4 font-black uppercase tracking-widest text-sm drop-shadow-md">Lugloch: Naechste Karte ansehen</span>
               <div className="flex gap-4 mb-8 transform scale-90 md:scale-100">
-                {state.pendingCards.map((c, i) => (
-                  <div key={c.id} onClick={() => dispatch({ type: 'LUGLOCH_PLAY', payload: { index: i } })} className="cursor-pointer hover:scale-110 transition-transform">
+                {state.pendingCards.map((c) => (
+                  <div key={c.id}>
                     <CardView card={c} selectable />
                   </div>
                 ))}
               </div>
-              <div className="flex gap-4 w-full max-w-xs">
-                <button onClick={() => dispatch({ type: 'LUGLOCH_RETURN' })} className="flex-1 py-3 bg-gradient-to-b from-slate-600 to-slate-800 text-white font-black rounded-xl shadow-[0_4px_0_rgb(30,41,59)] active:shadow-none active:translate-y-[4px] transition-all uppercase tracking-wider">Alle Zurücklegen</button>
+              <p className="text-sm text-slate-400 mb-6">Lege die Karte auf die Ablage oder oben auf den Stapel, damit der naechste Spieler sie zieht.</p>
+              <div className="flex gap-4 w-full max-w-xl">
+                <button onClick={() => dispatch({ type: 'LUGLOCH_RETURN' })} className="flex-1 py-3 bg-gradient-to-b from-[#0f5132] to-[#065f46] text-white font-black rounded-xl shadow-[0_4px_0_rgb(6,95,70)] active:shadow-none active:translate-y-[4px] transition-all uppercase tracking-wider">Zurück auf Stapel</button>
+                <button onClick={() => dispatch({ type: 'LUGLOCH_DISCARD' })} className="flex-1 py-3 bg-gradient-to-b from-[#b91c1c] to-[#7f1d1d] text-white font-black rounded-xl shadow-[0_4px_0_rgb(127,29,29)] active:shadow-none active:translate-y-[4px] transition-all uppercase tracking-wider">Abwerfen</button>
               </div>
             </div>
           )}
@@ -761,7 +810,7 @@ export default function Game({
           {state.phase === 'langfinger_decision' && (
             <div className="flex flex-col items-center">
               <span className="text-orange-400 font-bold text-lg mb-4">Langfinger gespielt!</span>
-              <p className="text-sm text-slate-400 mt-2">Wähle eine sichtbare Karte eines Mitspielers, um sie zu stehlen.</p>
+              <p className="text-sm text-slate-400 mt-2">Wähle eine nicht eingesperrte Karte eines Mitspielers, um sie zu stehlen.</p>
             </div>
           )}
 
