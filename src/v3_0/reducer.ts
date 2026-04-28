@@ -678,7 +678,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
            }
            if (armorIndex !== -1) {
                // Mark cards to be destroyed
-               p.display = p.display.map((i, idx) => idx <= armorIndex ? { ...i, isBusted: true } : i);
+               p.display = p.display.map((i, idx) => idx >= armorIndex ? { ...i, isBusted: true } : i);
            } else {
                p.display = p.display.map(i => ({ ...i, isBusted: true }));
            }
@@ -723,7 +723,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
        if (isDynamiteBust) {
            if (armorIndex !== -1) {
                ns = logEvent(ns, `BUMM! Die Schrottrüstung schützt den hinteren Teil. Weiter geht's!`);
-               p.display = p.display.slice(armorIndex + 1);
+               p.display = p.display.filter(i => !i.isBusted);
            } else {
                ns = logEvent(ns, `BUMM! Alles weg. Neustart bei Null!`);
                p.display = [];
