@@ -520,9 +520,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             const victim = state.players.find(pl => pl.id === targetPlayerId)!;
             const stolenItem = victim.display.find(i => i.id === targetId)!;
 
+            // DEBUG: log attempted steal type and caged state
+            let sdbg = logEvent(state, `DEBUG: Langfinger versucht auf ${stolenItem.card.type} (caged=${!!stolenItem.cagedBy})`);
+
             // Guard: Cannot steal caged cards in V3
             if (stolenItem.cagedBy) {
-                return state;
+                return sdbg;
             }
 
             // Remove from victim
