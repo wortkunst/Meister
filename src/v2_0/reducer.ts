@@ -164,13 +164,12 @@ export function playCard(state: GameState, card: Card): GameState {
       s2 = { ...s2, firstDynamitePlayerId: p.id };
 
       // Now trigger bust for the firstDynamitePlayer
-      // We temporarily switch currentPlayerIndex to that player to reuse handleBust
       const savedIndex = s2.currentPlayerIndex;
       const bustTargetIndex = s2.players.findIndex(pl => pl.id === firstPlayer.id);
       s2 = { ...s2, currentPlayerIndex: bustTargetIndex };
       s2 = handleBust(s2, firstPlayer.display.find(i => i.card.type === 'Dynamit')?.card ?? card);
-      // Restore the current player index so the UI / advanceTurn knows whose turn it is after cleanup
-      s2 = { ...s2, currentPlayerIndex: bustTargetIndex };
+      // Restore the current player index
+      s2 = { ...s2, currentPlayerIndex: savedIndex };
       return s2;
     }
   }
@@ -541,7 +540,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                     const savedIndex = ns.currentPlayerIndex;
                     ns = { ...ns, currentPlayerIndex: bustTargetIndex };
                     ns = handleBust(ns, firstDynamitPlayer.display.find(i => i.card.type === 'Dynamit')?.card ?? targetItem.card);
-                    ns = { ...ns, currentPlayerIndex: bustTargetIndex };
+                    ns = { ...ns, currentPlayerIndex: savedIndex };
                     // The uncaged Dynamit becomes the new first
                     newFirstDynamitePlayerId = targetPlayerId;
                 }

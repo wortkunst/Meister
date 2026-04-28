@@ -179,6 +179,9 @@ export function playCard(state: GameState, card: Card): GameState {
       // Add the new dynamit card to current player's display first
       let s2 = addToDisplay(s, card);
 
+      // The new dynamit becomes the "first" dynamit – owned by current player
+      s2 = { ...s2, firstDynamitePlayerId: p.id };
+
       // Now trigger bust for the firstDynamitePlayer
       const savedIndex = s2.currentPlayerIndex;
       const bustTargetIndex = s2.players.findIndex(pl => pl.id === firstPlayer.id);
@@ -600,7 +603,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                     const savedIndex = ns.currentPlayerIndex;
                     ns = { ...ns, currentPlayerIndex: bustTargetIndex };
                     ns = handleBust(ns, firstDynamitPlayer.display.find(i => i.card.type === 'Dynamit')?.card ?? targetItem.card);
-                    ns = { ...ns, currentPlayerIndex: bustTargetIndex };
+                    ns = { ...ns, currentPlayerIndex: savedIndex };
                     // The uncaged Dynamit becomes the new first
                     newFirstDynamitePlayerId = targetPlayerId;
                 }
@@ -669,7 +672,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
        const armorIndex = p.display.findIndex(i => !i.cagedBy && !i.isSecret && i.card.type === 'Schrottrüstung');
        
        if (isDynamiteBust) {
-           ns.firstDynamitePlayerId = undefined; // Reset icon on explosion
+           // Reset icon only if the current holder is the one who busted
+           if (ns.firstDynamitePlayerId === p.id) {
+               ns.firstDynamitePlayerId = undefined;
+           }
            if (armorIndex !== -1) {
                // Mark cards to be destroyed
                p.display = p.display.map((i, idx) => idx <= armorIndex ? { ...i, isBusted: true } : i);
